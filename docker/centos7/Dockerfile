@@ -271,7 +271,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
 
 RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/misc/junit/ctest2junit.xsl -o /opt/ctest2junit.xsl
 
-# =========================== END OF LAYER: build   ============================
+# =========================== END OF LAYER: build ==============================
 FROM build as devel
 
 # add vscode server
@@ -384,7 +384,7 @@ RUN rm -f /root/anaconda-ks.cfg && \
     'bash ${HOME}/docker_proxy.sh' \
     >> .bashrc
 
-# =========================== END OF LAYER: devel   ============================
+# =========================== END OF LAYER: devel ==============================
 FROM build as distcc
 
 RUN useradd distcc && \
@@ -408,7 +408,7 @@ ENTRYPOINT distccd \
            --allow ${ALLOW} \
            --jobs `nproc`
 
-# =========================== END OF LAYER: distcc  ============================
+# =========================== END OF LAYER: distcc =============================
 FROM build as ycsb
 
 ENV YCSB_VERSION=ycsb-foundationdb-binding-0.17.0 \
@@ -427,3 +427,10 @@ RUN rm -Rf /opt/${YCSB_VERSION}/lib/fdb-java-5.2.5.jar
 WORKDIR "/opt/${YCSB_VERSION}"
 
 ENTRYPOINT ["bin/ycsb.sh"]
+
+# =========================== END OF LAYER: ycsb ===============================
+FROM devel as codebuild
+
+COPY dockerd-entrypoint.sh /usr/local/bin/
+ENTRYPOINT ["dockerd-entrypoint.sh"]
+# =========================== END OF LAYER: codebuild ==========================
