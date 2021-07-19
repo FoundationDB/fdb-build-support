@@ -1,16 +1,14 @@
-FROM centos:7
+FROM centos:7 as build
 
 WORKDIR /tmp
-COPY mono-project.com.rpmkey.pgp ./
-RUN rpmkeys --import mono-project.com.rpmkey.pgp && \
-    curl -Ls https://download.mono-project.com/repo/centos7-stable.repo -o /etc/yum.repos.d/mono-centos7-stable.repo && \
+RUN rpm --import https://download.mono-project.com/repo/xamarin.gpg && \
+    curl https://download.mono-project.com/repo/centos7-stable.repo | tee /etc/yum.repos.d/mono-centos7-stable.repo && \
     yum repolist && \
     yum install -y \
         centos-release-scl-rh \
         epel-release \
         scl-utils \
         yum-utils && \
-    yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && \
     yum install -y \
         autoconf \
         automake \
@@ -22,7 +20,6 @@ RUN rpmkeys --import mono-project.com.rpmkey.pgp && \
         devtoolset-8-libtsan-devel \
         devtoolset-8-libubsan-devel \
         devtoolset-8-systemtap-sdt-devel \
-        docker-ce \
         dos2unix \
         dpkg \
         gettext-devel \
@@ -52,8 +49,36 @@ RUN rpmkeys --import mono-project.com.rpmkey.pgp && \
             rh-python36-python-devel \
             rh-ruby26; \
     fi && \
+    rm /etc/yum.repos.d/mono-centos7-stable.repo && \
     yum clean all && \
     rm -rf /var/cache/yum
+
+# install docker 19
+ENV DOCKER_BUCKET="download.docker.com" \
+    DOCKER_CHANNEL="stable" \
+    DIND_COMMIT="3b5fac462d21ca164b3778647420016315289034" \
+    DOCKER_COMPOSE_VERSION="1.26.0"
+
+ENV DOCKER_SHA256="0f4336378f61ed73ed55a356ac19e46699a995f2aff34323ba5874d131548b9e"
+ENV DOCKER_VERSION="19.03.11"
+
+VOLUME /var/lib/docker
+
+RUN set -ex \
+    && curl -fSL "https://${DOCKER_BUCKET}/linux/static/${DOCKER_CHANNEL}/x86_64/docker-${DOCKER_VERSION}.tgz" -o docker.tgz \
+    && echo "${DOCKER_SHA256} *docker.tgz" | sha256sum -c - \
+    && tar --extract --file docker.tgz --strip-components 1  --directory /usr/local/bin/ \
+    && rm docker.tgz \
+    && docker -v \
+    # set up subuid/subgid so that "--userns-remap=default" works out-of-the-box
+    && groupadd dockremap \
+    && useradd -g dockremap dockremap \
+    && echo 'dockremap:165536:65536' >> /etc/subuid \
+    && echo 'dockremap:165536:65536' >> /etc/subgid \
+    && wget -nv "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" -O /usr/local/bin/dind \
+    && curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-Linux-x86_64 > /usr/local/bin/docker-compose \
+    && chmod +x /usr/local/bin/dind /usr/local/bin/docker-compose \
+    && docker-compose version
 
 # build/install git
 RUN source /opt/rh/devtoolset-8/enable && \
@@ -245,3 +270,160 @@ RUN source /opt/rh/devtoolset-8/enable && \
     rm -rf /tmp/*
 
 RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/misc/junit/ctest2junit.xsl -o /opt/ctest2junit.xsl
+
+# =========================== END OF LAYER: build   ============================
+FROM build as devel
+
+# add vscode server
+RUN yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/repo/epel-7/carlwgeorge-ripgrep-epel-7.repo && \
+    yum repolist && \
+    yum -y install \
+        bash-completion \
+        byobu \
+        cgdb \
+        emacs-nox \
+        fish \
+        jq \
+        ripgrep \
+        the_silver_searcher \
+        tmux \
+        tree \
+        vim \
+        zsh && \
+    yum clean all && \
+    rm -rf /var/cache/yum
+
+WORKDIR /tmp
+RUN source /opt/rh/devtoolset-8/enable && \
+    source /opt/rh/rh-python36/enable && \
+    pip3 install \
+        lxml \
+        psutil \
+        python-dateutil \
+        subprocess32 && \
+    mkdir fdb-joshua && \
+    cd fdb-joshua && \
+    git clone https://github.com/FoundationDB/fdb-joshua . && \
+    pip3 install /tmp/fdb-joshua && \
+    cd /tmp && \
+    curl -Ls https://amazon-eks.s3.us-west-2.amazonaws.com/1.18.9/2020-11-02/bin/linux/amd64/kubectl -o kubectl && \
+    echo "3dbe69e6deb35fbd6fec95b13d20ac1527544867ae56e3dae17e8c4d638b25b9  kubectl" > kubectl.txt && \
+    sha256sum -c kubectl.txt && \
+    mv kubectl /usr/local/bin/kubectl && \
+    chmod 755 /usr/local/bin/kubectl && \
+    curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip -o "awscliv2.zip" && \
+    echo "7ee475f22c1b35cc9e53affbf96a9ffce91706e154a9441d0d39cbf8366b718e  awscliv2.zip" > awscliv2.txt && \
+    sha256sum -c awscliv2.txt && \
+    unzip -qq awscliv2.zip && \
+    ./aws/install && \
+    rm -rf /tmp/*
+
+ARG FDB_VERSION="6.2.29"
+RUN mkdir -p /usr/lib/foundationdb/plugins && \
+    curl -Ls https://www.foundationdb.org/downloads/misc/joshua_tls_library.tar.gz | \
+        tar --strip-components=1 --no-same-owner --directory /usr/lib/foundationdb/plugins -xz && \
+    ln -sf /usr/lib/foundationdb/plugins/FDBGnuTLS.so /usr/lib/foundationdb/plugins/fdb-libressl-plugin.so && \
+    curl -Ls https://www.foundationdb.org/downloads/${FDB_VERSION}/linux/libfdb_c_${FDB_VERSION}.so -o /usr/lib64/libfdb_c_${FDB_VERSION}.so && \
+    ln -sf /usr/lib64/libfdb_c_${FDB_VERSION}.so /usr/lib64/libfdb_c.so
+
+WORKDIR /root
+RUN curl -Ls https://update.code.visualstudio.com/latest/server-linux-x64/stable -o /tmp/vscode-server-linux-x64.tar.gz && \
+    mkdir -p .vscode-server/bin/latest && \
+    tar --strip-components 1 --no-same-owner --directory .vscode-server/bin/latest -xf /tmp/vscode-server-linux-x64.tar.gz && \
+    touch .vscode-server/bin/latest/0 && \
+    rm -rf /tmp/*
+RUN rm -f /root/anaconda-ks.cfg && \
+    printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'set -Eeuo pipefail' \
+    '' \
+    'mkdir -p ~/.docker' \
+    'cat > ~/.docker/config.json << EOF' \
+    '{' \
+    ' "proxies":' \
+    ' {' \
+    '   "default":' \
+    '   {' \
+    '     "httpProxy": "${HTTP_PROXY}",' \
+    '     "httpsProxy": "${HTTPS_PROXY}",' \
+    '     "noProxy": "${NO_PROXY}"' \
+    '   }' \
+    ' }' \
+    '}' \
+    'EOF' \
+    > docker_proxy.sh && \
+    chmod 755 docker_proxy.sh && \
+    printf '%s\n' \
+    'source /opt/rh/devtoolset-8/enable' \
+    'source /opt/rh/rh-python36/enable' \
+    'source /opt/rh/rh-ruby26/enable' \
+    '' \
+    'function cmk_ci() {' \
+    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.10.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    ninja -v -C ${HOME}/build_output -j 84 all packages strip_targets' \
+    '}' \
+    'function cmk() {' \
+    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.10.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    ninja -C ${HOME}/build_output -j 84' \
+    '}' \
+    'function ct() {' \
+    '    cd ${HOME}/build_output && ctest -j 32 --no-compress-output -T test --output-on-failure' \
+    '}' \
+    'function j() {' \
+    '   python3 -m joshua.joshua "${@}"' \
+    '}' \
+    'function jsd() {' \
+    '   j start --tarball $(find ${HOME}/build_output/packages -name correctness\*.tar.gz) "${@}"' \
+    '}' \
+    '' \
+    'USER_BASHRC="$HOME/src/.bashrc.local"' \
+    'if test -f "$USER_BASHRC"; then' \
+    '   source $USER_BASHRC' \
+    'fi' \
+    '' \
+    'bash ${HOME}/docker_proxy.sh' \
+    >> .bashrc
+
+# =========================== END OF LAYER: devel   ============================
+FROM build as distcc
+
+RUN useradd distcc && \
+    source /opt/rh/devtoolset-8/enable && \
+    source /opt/rh/rh-python36/enable && \
+    update-distcc-symlinks
+
+EXPOSE 3632
+EXPOSE 3633
+USER distcc
+ENV ALLOW 0.0.0.0/0
+
+ENTRYPOINT distccd \
+           --daemon \
+           --enable-tcp-insecure \
+           --no-detach \
+           --port 3632 \
+           --log-stderr \
+           --log-level info \
+           --listen 0.0.0.0 \
+           --allow ${ALLOW} \
+           --jobs `nproc`
+
+# =========================== END OF LAYER: distcc  ============================
+FROM build as ycsb
+
+ENV YCSB_VERSION=ycsb-foundationdb-binding-0.17.0 \
+    PATH=${PATH}:/usr/bin
+
+RUN cd /opt \
+    && eval curl "-Ls https://github.com/brianfrankcooper/YCSB/releases/download/0.17.0/ycsb-foundationdb-binding-0.17.0.tar.gz" \
+    | tar -xzvf -
+
+RUN rm -Rf /opt/${YCSB_VERSION}/lib/fdb-java-5.2.5.jar
+
+# COPY The Appropriate fdb-java-.jar Aaron from packages
+# COPY binary RPM for foundationd-db
+# Install Binary
+
+WORKDIR "/opt/${YCSB_VERSION}"
+
+ENTRYPOINT ["bin/ycsb.sh"]
