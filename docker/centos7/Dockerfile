@@ -437,5 +437,6 @@ ENTRYPOINT ["bin/ycsb.sh"]
 FROM devel as codebuild
 
 COPY dockerd-entrypoint.sh /usr/local/bin/
+RUN chmod 755 /usr/local/bin/dockerd-entrypoint.sh
 ENTRYPOINT ["dockerd-entrypoint.sh"]
 # =========================== END OF LAYER: codebuild ==========================
