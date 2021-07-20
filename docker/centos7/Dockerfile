@@ -123,6 +123,11 @@ RUN if [ "$(uname -p)" == "aarch64" ]; then \
 
 # build/install LLVM
 RUN source /opt/rh/devtoolset-8/enable && \
+    if [ "$(uname -p)" == "aarch64" ]; then \
+        source /opt/rh/rh-python38/enable; \
+    else \
+        source /opt/rh/rh-python36/enable; \
+    fi && \
     curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/llvm-project-11.0.0.tar.xz -o llvm.tar.xz && \
     echo "b7b639fc675fa1c86dd6d0bc32267be9eb34451748d2efd03f674b773000e92b  llvm.tar.xz" > llvm-sha.txt && \
     sha256sum -c llvm-sha.txt && \
