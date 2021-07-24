@@ -20,6 +20,7 @@ RUN rpm --import https://download.mono-project.com/repo/xamarin.gpg && \
         devtoolset-8-libtsan-devel \
         devtoolset-8-libubsan-devel \
         devtoolset-8-systemtap-sdt-devel \
+        devtoolset-8-libatomic-devel \
         dos2unix \
         dpkg \
         gettext-devel \
