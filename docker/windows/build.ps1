@@ -1,10 +1,10 @@
 param (
-    [string]$SourceDir = (Resolve-Path "$PSScriptRoot\.."),
     [string]$ImageName = "fdb-windows",
     # By default we want to leave one CPU core for the OS so the user has some minimal control over the system
     [string]$Cpus = (Get-CimInstance -ClassName Win32_Processor -Filter "DeviceID='CPU0'").NumberOfLogicalProcessors - 2,
     # We want to leave at least 1GB of memory for the OS
     [string]$Memory = (Get-CimInstance -ClassName Win32_ComputerSystem).TotalPhysicalMemory - 2*[Math]::Pow(2, 30),
+    [Parameter(Mandatory=$true)][string]$SourceDir,
     [Parameter(Mandatory=$true)][string]$BuildDir,
     [switch]$DryRun = $false,
     [switch]$ForceConfigure = $false,
@@ -12,11 +12,17 @@ param (
     [Parameter(Position=0)][string]$Target = "installer"
 )
 
+$SourceDir = Resolve-Path $SourceDir
+# we don't want a trailing \ in the build dir
+if ($SourceDir.EndsWith("\")) {
+    $SourceDir = $SourceDir.Substring(0, $SourceDir.Length - 1)
+}
 $BuildDir = Resolve-Path $BuildDir
 # we don't want a trailing \ in the build dir
 if ($BuildDir.EndsWith("\")) {
     $BuildDir = $BuildDir.Substring(0, $BuildDir.Length - 1)
 }
+
 $exponent = 0
 $Memory = $Memory.ToUpper()
 if ($Memory.EndsWith("K")) {
@@ -32,7 +38,7 @@ if ($exponent -gt 0) {
     $Memory = $Memory.Substring(0, $Memory.Length - 1) * [Math]::Pow(2, $exponent)
 }
 
-$buildCommand = [string]::Format("Get-Content {0}\build\Dockerfile.windows.devel | docker build -t {1} -m {2} -", 
+$buildCommand = [string]::Format("Get-Content .\devel\Dockerfile | docker build -t {1} -m {2} -", 
                                  $SourceDir, $ImageName, [Math]::Min(16 * [Math]::Pow(2, 30), $Memory))
 if ($DryRun -and !$SkipDockerBuild) {
     Write-Output $buildCommand
