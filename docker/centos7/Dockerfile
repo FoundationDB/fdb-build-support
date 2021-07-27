@@ -372,6 +372,10 @@ RUN rm -f /root/anaconda-ks.cfg && \
     '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.10.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
     '    ninja -C ${HOME}/build_output -j 84' \
     '}' \
+    'function ccmk() {' \
+    '    CC=clang CXX=clang++ cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.10.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    ninja -C ${HOME}/build_output -j 84' \
+    '}' \
     'function ct() {' \
     '    cd ${HOME}/build_output && ctest -j 32 --no-compress-output -T test --output-on-failure' \
     '}' \
