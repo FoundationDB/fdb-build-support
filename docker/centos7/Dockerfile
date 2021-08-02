@@ -179,7 +179,7 @@ RUN curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.67.0/source/bo
     rm -rf /opt/boost_1_67_0/libs && \
     rm -rf /tmp/*
 
-# install boost 1.72 to /opt
+# install Boost::context 1.72 to /opt
 RUN source /opt/rh/devtoolset-8/enable && \
     curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.72.0/source/boost_1_72_0.tar.bz2 -o boost_1_72_0.tar.bz2 && \
     echo "59c9b274bc451cf91a9ba1dd2c7fdcaf5d60b1b3aa83f2c9fa143417cc660722  boost_1_72_0.tar.bz2" > boost-sha-72.txt && \
@@ -189,6 +189,22 @@ RUN source /opt/rh/devtoolset-8/enable && \
     ./bootstrap.sh --with-libraries=context &&\
     ./b2 link=static cxxflags=-std=c++14 --prefix=/opt/boost_1_72_0 install &&\
     rm -rf /opt/boost_1_72_0/libs && \
+    rm -rf /tmp/*
+
+# Install Boost::context 1.72 to /opt, using clang to compile the library
+# Boost::context depens on some C++11 features, e.g. std::call_once; however,
+# gcc and clang are using different ABIs, thus a gcc-built Boost::context is
+# not linkable to clang objects.
+RUN source /opt/rh/devtoolset-8/enable && \
+    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.72.0/source/boost_1_72_0.tar.bz2 -o boost_1_72_0.tar.bz2 && \
+    echo "59c9b274bc451cf91a9ba1dd2c7fdcaf5d60b1b3aa83f2c9fa143417cc660722  boost_1_72_0.tar.bz2" > boost-sha-72.txt && \
+    sha256sum -c boost-sha-72.txt && \
+    tar --no-same-owner --directory /tmp -xjf boost_1_72_0.tar.bz2 && \
+    mv /tmp/boost_1_72_0 /opt/boost_1_72_0_clang && \
+    cd /opt/boost_1_72_0_clang && \
+    ./bootstrap.sh --with-toolset=clang --with-libraries=context && \
+    ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_72_0_clang install && \
+    rm -rf /opt/boost_1_72_0_clang/libs && \
     rm -rf /tmp/*
 
 # jemalloc (needed for FDB after 6.3)
