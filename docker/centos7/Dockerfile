@@ -462,6 +462,10 @@ ENTRYPOINT ["bin/ycsb.sh"]
 FROM devel as codebuild
 
 COPY dockerd-entrypoint.sh /usr/local/bin/
-RUN chmod 755 /usr/local/bin/dockerd-entrypoint.sh
+RUN chmod 755 /usr/local/bin/dockerd-entrypoint.sh && \
+    yum repolist && \
+    yum install -y iptables && \
+    yum clean all && \
+    rm -rf /var/cache/yum
 ENTRYPOINT ["dockerd-entrypoint.sh"]
 # =========================== END OF LAYER: codebuild ==========================
