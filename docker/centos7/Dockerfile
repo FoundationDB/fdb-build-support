@@ -448,26 +448,6 @@ ENTRYPOINT distccd \
            --jobs `nproc`
 
 # =========================== END OF LAYER: distcc =============================
-FROM build as ycsb
-
-ENV YCSB_VERSION=ycsb-foundationdb-binding-0.17.0 \
-    PATH=${PATH}:/usr/bin
-
-RUN cd /opt \
-    && eval curl "-Ls https://github.com/brianfrankcooper/YCSB/releases/download/0.17.0/ycsb-foundationdb-binding-0.17.0.tar.gz" \
-    | tar -xzvf -
-
-RUN rm -Rf /opt/${YCSB_VERSION}/lib/fdb-java-5.2.5.jar
-
-# COPY The Appropriate fdb-java-.jar Aaron from packages
-# COPY binary RPM for foundationd-db
-# Install Binary
-
-WORKDIR "/opt/${YCSB_VERSION}"
-
-ENTRYPOINT ["bin/ycsb.sh"]
-
-# =========================== END OF LAYER: ycsb ===============================
 FROM devel as codebuild
 
 COPY dockerd-entrypoint.sh /usr/local/bin/
@@ -477,4 +457,5 @@ RUN chmod 755 /usr/local/bin/dockerd-entrypoint.sh && \
     yum clean all && \
     rm -rf /var/cache/yum
 ENTRYPOINT ["dockerd-entrypoint.sh"]
+
 # =========================== END OF LAYER: codebuild ==========================
