@@ -25,7 +25,6 @@ RUN rpm --import https://download.mono-project.com/repo/xamarin.gpg && \
         dpkg \
         gettext-devel \
         git \
-        golang \
         java-11-openjdk-devel \
         libcurl-devel \
         libuuid-devel \
@@ -162,6 +161,14 @@ RUN source /opt/rh/devtoolset-8/enable && \
     make -j1 install && \
     ln -sv /usr/local/lib64/lib*.so.1.1 /usr/lib64/ && \
     cd .. && \
+    rm -rf /tmp/*
+
+# install golang 1.16
+RUN curl -Ls https://golang.org/dl/go1.16.7.linux-amd64.tar.gz -o golang.tar.gz && \
+    echo "7fe7a73f55ba3e2285da36f8b085e5c0159e9564ef5f63ee0ed6b818ade8ef04  golang.tar.gz" > golang-sha.txt && \
+    sha256sum -c golang-sha.txt && \
+    tar --directory /usr/local -xf golang.tar.gz && \
+    echo '[ -x /usr/local/go/bin/go ] && export GOROOT=/usr/local/go && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
     rm -rf /tmp/*
 
 # install gradle
