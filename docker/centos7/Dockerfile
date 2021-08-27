@@ -169,6 +169,8 @@ RUN curl -Ls https://golang.org/dl/go1.16.7.linux-amd64.tar.gz -o golang.tar.gz 
     sha256sum -c golang-sha.txt && \
     tar --directory /usr/local -xf golang.tar.gz && \
     echo '[ -x /usr/local/go/bin/go ] && export GOROOT=/usr/local/go && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
+    source /etc/profile.d/golang.sh && \
+    go get github.com/onsi/ginkgo/ginkgo@34fc8cd4f44d95736edd25aba7310a6da69620e1 && \
     rm -rf /tmp/*
 
 # install gradle
