@@ -410,10 +410,6 @@ RUN rm -f /root/anaconda-ks.cfg && \
     '    CC=clang CXX=clang++ cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.22.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
     '    ninja -C ${HOME}/build_output -j 84' \
     '}' \
-    'function ccmk() {' \
-    '    CC=clang CXX=clang++ cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.10.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
-    '    ninja -C ${HOME}/build_output -j 84' \
-    '}' \
     'function ct() {' \
     '    cd ${HOME}/build_output && ctest -j 32 --no-compress-output -T test --output-on-failure' \
     '}' \
@@ -422,6 +418,10 @@ RUN rm -f /root/anaconda-ks.cfg && \
     '}' \
     'function jsd() {' \
     '   j start --tarball $(find ${HOME}/build_output/packages -name correctness\*.tar.gz) "${@}"' \
+    '}' \
+    '' \
+    'function fmt() {' \
+    '   find ${HOME}/src/foundationdb -type f \( -name \*.c -o -name \*.cpp -o -name \*.h -o -name \*.hpp \) -a \( ! -name sqlite3.amalgamation.c \) -a \( ! -path \*.git\* \) -exec clang-format -style=file -i "{}" \;' \
     '}' \
     '' \
     'USER_BASHRC="$HOME/src/.bashrc.local"' \
