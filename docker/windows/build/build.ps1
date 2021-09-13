@@ -47,17 +47,17 @@ if([int64]$Memory -lt (4 * [Math]::Pow(2, 30))){
     exit
 }
 
-$MaxCpusFromMemory = [int]((($Memory / [math]::Pow(2, 30)) - 4) / 2)
-$MaxAvailableCPUs = (Get-CimInstance -ClassName Win32_Processor -Filter "DeviceID='CPU0'").NumberOfLogicalProcessors - 2
-$MaxCPUsToUse = [Math]::Min($MaxCpusFromMemory, $MaxAvailableCPUs)
 if(!$Cpus){
+    $MaxCpusFromMemory = [int]((($Memory / [math]::Pow(2, 30)) - 4) / 2)
+    $MaxAvailableCPUs = (Get-CimInstance -ClassName Win32_Processor -Filter "DeviceID='CPU0'").NumberOfLogicalProcessors - 2
+    $MaxCPUsToUse = [Math]::Min($MaxCpusFromMemory, $MaxAvailableCPUs)
     $Cpus = $MaxCPUsToUse
 }
 else{
     $Cpus = [Math]::Min($Cpus, $MaxCPUsToUse)
 }
 
-$buildCommand = [string]::Format("Get-Content .\devel\Dockerfile | docker build -t {1} -m {2} -", 
+$buildCommand = [string]::Format("docker build -t {1} -m {2} .", 
     $SourceDir, $ImageName, [Math]::Min(16 * [Math]::Pow(2, 30), $Memory))
 if ($DryRun -and !$SkipDockerBuild) {
     Write-Output $buildCommand
