@@ -48,10 +48,10 @@ if([int64]$Memory -lt (4 * [Math]::Pow(2, 30))){
     exit
 }
 
-$MaxCpusFromMemory = [int]((($Memory / [math]::Pow(2, 30)) - 4) / 2)
-$MaxAvailableCPUs = (Get-CimInstance -ClassName Win32_Processor -Filter "DeviceID='CPU0'").NumberOfLogicalProcessors - 2
-$MaxCPUsToUse = [Math]::Min($MaxCpusFromMemory, $MaxAvailableCPUs)
 if(!$Cpus){
+    $MaxCpusFromMemory = [int]((($Memory / [math]::Pow(2, 30)) - 4) / 2)
+    $MaxAvailableCPUs = (Get-CimInstance -ClassName Win32_Processor -Filter "DeviceID='CPU0'").NumberOfLogicalProcessors - 2
+    $MaxCPUsToUse = [Math]::Min($MaxCpusFromMemory, $MaxAvailableCPUs)
     $Cpus = $MaxCPUsToUse
 }
 
@@ -59,8 +59,8 @@ $GBMemory = [int] ($Memory / [math]::Pow(10, 9))
 Write-Output "Using $Cpus CPUs"
 Write-Output "Using $GBMemory GB of memory"
 
-$buildCommand = [string]::Format("Get-Content .\Dockerfile | docker build -t {1} -m {2} -", 
-    $SourceDir, $ImageName, [Math]::Min(16 * [Math]::Pow(2, 30), $Memory))
+$buildCommand = [string]::Format("docker build -t {1} -m {2} .", 
+    $SourceDir, $ImageName, $Memory)
 if ($DryRun -and !$SkipDockerBuild) {
     Write-Output $buildCommand
 }
@@ -79,9 +79,7 @@ if ($ForceConfigure -or ![System.IO.File]::Exists("$BuildDir\CMakeCache.txt") -o
 }
 if ($Target -ne "configure") {
     "msbuild /p:CL_MPCount=$Cpus /p:UseMultiToolTask=true /p:Configuration=$BuildConfig foundationdb.sln" | Out-File -Append $batFile
-}
-if ($Target -ne "configure") {
-    "ctest -j $Cpus --no-compress-output -T test --output-on-failure -C $BuildConfig" | Out-File -Append $batFile
+    #"ctest -j $Cpus --no-compress-output -T test --output-on-failure -C $BuildConfig" | Out-File -Append $batFile
 }
 
 $dockerCommand = "powershell.exe -NoLogo -ExecutionPolicy Bypass -File $batFileDocker"
