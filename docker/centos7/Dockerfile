@@ -182,6 +182,15 @@ RUN curl -Ls https://services.gradle.org/distributions/gradle-7.2-bin.zip -o gra
     echo '[ -x /opt/gradle/bin/gradle ] && export PATH=/opt/gradle/bin/:$PATH' >> /etc/profile.d/gradle.sh && \
     rm -rf /tmp/*
 
+# install maven
+RUN curl -Ls https://dlcdn.apache.org/maven/maven-3/3.8.2/binaries/apache-maven-3.8.2-bin.zip -o maven.zip && \
+    echo "065895606bb1622104b0078b527c3da7b7acfbdd8edd9c619da0626628425d6c  maven.zip" > maven-sha.txt && \
+    sha256sum -c maven-sha.txt && \
+    unzip -qq maven.zip && \
+    mv apache-maven-3.8.2 /opt/maven && \
+    echo '[ -x /opt/maven/bin/mvn ] && export PATH=/opt/maven/bin/:$PATH' >> /etc/profile.d/maven.sh && \
+    rm -rf /tmp/*
+
 # install rocksdb to /opt
 RUN curl -Ls https://github.com/facebook/rocksdb/archive/v6.22.1.tar.gz -o rocksdb.tar.gz && \
     echo "2df8f34a44eda182e22cf84dee7a14f17f55d305ff79c06fb3cd1e5f8831e00d  rocksdb.tar.gz" > rocksdb-sha.txt && \
