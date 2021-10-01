@@ -1,7 +1,6 @@
 FROM centos:6 as build
 
 WORKDIR /tmp
-
 RUN sed -i -e '/enabled/d' /etc/yum.repos.d/CentOS-Base.repo && \
     sed -i -e '/gpgcheck=1/a enabled=0' /etc/yum.repos.d/CentOS-Base.repo && \
     sed -i -n '/6.1/q;p' /etc/yum.repos.d/CentOS-Vault.repo && \
@@ -23,8 +22,10 @@ RUN sed -i -e '/enabled/d' /etc/yum.repos.d/CentOS-Base.repo && \
         debbuild \
         devtoolset-8 \
         devtoolset-8-libasan-devel \
+        devtoolset-8-libatomic-devel \
         devtoolset-8-libtsan-devel \
         devtoolset-8-libubsan-devel \
+        devtoolset-8-systemtap-sdt-devel \
         dos2unix \
         dpkg \
         gettext-devel \
@@ -39,13 +40,13 @@ RUN sed -i -e '/enabled/d' /etc/yum.repos.d/CentOS-Base.repo && \
         lz4-static \
         mono-devel \
         redhat-lsb-core \
+        rh-python36 \
+        rh-python36-python-devel \
+        rh-ruby24 \
         rpm-build \
         tcl-devel \
         unzip \
-        wget \
-        rh-python36 \
-        rh-python36-python-devel \
-        rh-ruby24 && \
+        wget && \
     yum clean all && \
     rm -rf /var/cache/yum
 
@@ -114,8 +115,8 @@ RUN curl -Ls https://github.com/Kitware/CMake/releases/download/v3.13.4/cmake-3.
 # build/install LLVM
 RUN source /opt/rh/devtoolset-8/enable && \
     source /opt/rh/rh-python36/enable && \
-    curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/llvm-project-10.0.0.tar.xz -o llvm.tar.xz && \
-    echo "6287a85f4a6aeb07dbffe27847117fe311ada48005f2b00241b523fe7b60716e  llvm.tar.xz" > llvm-sha.txt && \
+    curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/llvm-project-11.0.0.tar.xz -o llvm.tar.xz && \
+    echo "b7b639fc675fa1c86dd6d0bc32267be9eb34451748d2efd03f674b773000e92b  llvm.tar.xz" > llvm-sha.txt && \
     sha256sum -c llvm-sha.txt && \
     mkdir llvm-project && \
     tar --strip-components 1 --no-same-owner --directory llvm-project -xf llvm.tar.xz && \
@@ -149,6 +150,34 @@ RUN source /opt/rh/devtoolset-8/enable && \
     cd .. && \
     rm -rf /tmp/*
 
+# install golang 1.16
+RUN curl -Ls https://golang.org/dl/go1.16.7.linux-amd64.tar.gz -o golang.tar.gz && \
+    echo "7fe7a73f55ba3e2285da36f8b085e5c0159e9564ef5f63ee0ed6b818ade8ef04  golang.tar.gz" > golang-sha.txt && \
+    sha256sum -c golang-sha.txt && \
+    tar --directory /usr/local -xf golang.tar.gz && \
+    echo '[ -x /usr/local/go/bin/go ] && export GOROOT=/usr/local/go && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
+    source /etc/profile.d/golang.sh && \
+    go get github.com/onsi/ginkgo/ginkgo@34fc8cd4f44d95736edd25aba7310a6da69620e1 && \
+    rm -rf /tmp/*
+
+# install gradle
+RUN curl -Ls https://services.gradle.org/distributions/gradle-7.2-bin.zip -o gradle.zip && \
+    echo "f581709a9c35e9cb92e16f585d2c4bc99b2b1a5f85d2badbd3dc6bff59e1e6dd  gradle.zip" > gradle-sha.txt && \
+    sha256sum -c gradle-sha.txt && \
+    unzip -qq gradle.zip && \
+    mv gradle-7.2 /opt/gradle && \
+    echo '[ -x /opt/gradle/bin/gradle ] && export PATH=/opt/gradle/bin/:$PATH' >> /etc/profile.d/gradle.sh && \
+    rm -rf /tmp/*
+
+# install maven
+RUN curl -Ls https://dlcdn.apache.org/maven/maven-3/3.8.2/binaries/apache-maven-3.8.2-bin.zip -o maven.zip && \
+    echo "065895606bb1622104b0078b527c3da7b7acfbdd8edd9c619da0626628425d6c  maven.zip" > maven-sha.txt && \
+    sha256sum -c maven-sha.txt && \
+    unzip -qq maven.zip && \
+    mv apache-maven-3.8.2 /opt/maven && \
+    echo '[ -x /opt/maven/bin/mvn ] && export PATH=/opt/maven/bin/:$PATH' >> /etc/profile.d/maven.sh && \
+    rm -rf /tmp/*
+
 # install rocksdb to /opt
 RUN curl -Ls https://github.com/facebook/rocksdb/archive/v6.22.1.tar.gz -o rocksdb.tar.gz && \
     echo "2df8f34a44eda182e22cf84dee7a14f17f55d305ff79c06fb3cd1e5f8831e00d  rocksdb.tar.gz" > rocksdb-sha.txt && \
@@ -164,7 +193,7 @@ RUN curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.67.0/source/bo
     rm -rf /opt/boost_1_67_0/libs && \
     rm -rf /tmp/*
 
-# install boost 1.72 to /opt
+# install Boost::context 1.72 to /opt
 RUN source /opt/rh/devtoolset-8/enable && \
     curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.72.0/source/boost_1_72_0.tar.bz2 -o boost_1_72_0.tar.bz2 && \
     echo "59c9b274bc451cf91a9ba1dd2c7fdcaf5d60b1b3aa83f2c9fa143417cc660722  boost_1_72_0.tar.bz2" > boost-sha-72.txt && \
@@ -174,6 +203,22 @@ RUN source /opt/rh/devtoolset-8/enable && \
     ./bootstrap.sh --with-libraries=context &&\
     ./b2 link=static cxxflags=-std=c++14 --prefix=/opt/boost_1_72_0 install &&\
     rm -rf /opt/boost_1_72_0/libs && \
+    rm -rf /tmp/*
+
+# Install Boost::context 1.72 to /opt, using clang to compile the library
+# Boost::context depens on some C++11 features, e.g. std::call_once; however,
+# gcc and clang are using different ABIs, thus a gcc-built Boost::context is
+# not linkable to clang objects.
+RUN source /opt/rh/devtoolset-8/enable && \
+    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.72.0/source/boost_1_72_0.tar.bz2 -o boost_1_72_0.tar.bz2 && \
+    echo "59c9b274bc451cf91a9ba1dd2c7fdcaf5d60b1b3aa83f2c9fa143417cc660722  boost_1_72_0.tar.bz2" > boost-sha-72.txt && \
+    sha256sum -c boost-sha-72.txt && \
+    tar --no-same-owner --directory /tmp -xjf boost_1_72_0.tar.bz2 && \
+    mv /tmp/boost_1_72_0 /opt/boost_1_72_0_clang && \
+    cd /opt/boost_1_72_0_clang && \
+    ./bootstrap.sh --with-toolset=clang --with-libraries=context && \
+    ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_72_0_clang install && \
+    rm -rf /opt/boost_1_72_0_clang/libs && \
     rm -rf /tmp/*
 
 # jemalloc (needed for FDB after 6.3)
@@ -333,13 +378,13 @@ RUN source /opt/rh/devtoolset-8/enable && \
     git clone https://github.com/FoundationDB/fdb-joshua . && \
     pip3 install /tmp/fdb-joshua && \
     cd /tmp && \
-    curl -Ls https://amazon-eks.s3.us-west-2.amazonaws.com/1.18.9/2020-11-02/bin/linux/amd64/kubectl -o kubectl && \
-    echo "3dbe69e6deb35fbd6fec95b13d20ac1527544867ae56e3dae17e8c4d638b25b9  kubectl" > kubectl.txt && \
+    curl -Ls https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/kubectl -o kubectl && \
+    echo "08ff68159bbcb844455167abb1d0de75bbfe5ae1b051f81ab060a1988027868a  kubectl" > kubectl.txt && \
     sha256sum -c kubectl.txt && \
     mv kubectl /usr/local/bin/kubectl && \
     chmod 755 /usr/local/bin/kubectl && \
-    curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip -o "awscliv2.zip" && \
-    echo "7ee475f22c1b35cc9e53affbf96a9ffce91706e154a9441d0d39cbf8366b718e  awscliv2.zip" > awscliv2.txt && \
+    curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.2.43.zip -o "awscliv2.zip" && \
+    echo "9a8b3c4e7f72bbcc55e341dce3af42479f2730c225d6d265ee6f9162cfdebdfd  awscliv2.zip" > awscliv2.txt && \
     sha256sum -c awscliv2.txt && \
     unzip -qq awscliv2.zip && \
     ./aws/install && \
@@ -378,7 +423,7 @@ RUN rm -f /root/anaconda-ks.cfg && \
     printf '%s\n' \
     'source /opt/rh/devtoolset-8/enable' \
     'source /opt/rh/rh-python36/enable' \
-    'source /opt/rh/rh-ruby26/enable' \
+    'source /opt/rh/rh-ruby24/enable' \
     '' \
     'function cmk_ci() {' \
     '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.22.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
@@ -386,6 +431,10 @@ RUN rm -f /root/anaconda-ks.cfg && \
     '}' \
     'function cmk() {' \
     '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.22.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    ninja -C ${HOME}/build_output -j 84' \
+    '}' \
+    'function ccmk() {' \
+    '    CC=clang CXX=clang++ cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.22.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
     '    ninja -C ${HOME}/build_output -j 84' \
     '}' \
     'function ct() {' \

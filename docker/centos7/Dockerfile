@@ -17,10 +17,10 @@ RUN rpm --import https://download.mono-project.com/repo/xamarin.gpg && \
         debbuild \
         devtoolset-8 \
         devtoolset-8-libasan-devel \
+        devtoolset-8-libatomic-devel \
         devtoolset-8-libtsan-devel \
         devtoolset-8-libubsan-devel \
         devtoolset-8-systemtap-sdt-devel \
-        devtoolset-8-libatomic-devel \
         dos2unix \
         dpkg \
         gettext-devel \
@@ -34,21 +34,13 @@ RUN rpm --import https://download.mono-project.com/repo/xamarin.gpg && \
         lz4-static \
         mono-devel \
         redhat-lsb-core \
+        rh-python38 \
+        rh-python38-python-devel \
+        rh-ruby27 \
         rpm-build \
         tcl-devel \
         unzip \
         wget && \
-    if [ "$(uname -p)" == "aarch64" ]; then \
-        yum install -y \
-            rh-python38 \
-            rh-python38-python-devel \
-            rh-ruby27; \
-    else \
-        yum install -y \
-            rh-python36 \
-            rh-python36-python-devel \
-            rh-ruby26; \
-    fi && \
     rm /etc/yum.repos.d/mono-centos7-stable.repo && \
     yum clean all && \
     rm -rf /var/cache/yum
@@ -123,11 +115,7 @@ RUN if [ "$(uname -p)" == "aarch64" ]; then \
 
 # build/install LLVM
 RUN source /opt/rh/devtoolset-8/enable && \
-    if [ "$(uname -p)" == "aarch64" ]; then \
-        source /opt/rh/rh-python38/enable; \
-    else \
-        source /opt/rh/rh-python36/enable; \
-    fi && \
+    source /opt/rh/rh-python38/enable && \
     curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/llvm-project-11.0.0.tar.xz -o llvm.tar.xz && \
     echo "b7b639fc675fa1c86dd6d0bc32267be9eb34451748d2efd03f674b773000e92b  llvm.tar.xz" > llvm-sha.txt && \
     sha256sum -c llvm-sha.txt && \
@@ -286,11 +274,7 @@ RUN mkdir -p /opt/foundationdb/old && \
 
 # build/install distcc
 RUN source /opt/rh/devtoolset-8/enable && \
-    if [ "$(uname -p)" == "aarch64" ]; then \
-        source /opt/rh/rh-python38/enable; \
-    else \
-        source /opt/rh/rh-python36/enable; \
-    fi && \
+    source /opt/rh/rh-python38/enable && \
     curl -Ls https://github.com/distcc/distcc/archive/v3.3.5.tar.gz -o distcc.tar.gz && \
     echo "13a4b3ce49dfc853a3de550f6ccac583413946b3a2fa778ddf503a9edc8059b0  distcc.tar.gz" > distcc-sha256.txt && \
     sha256sum -c distcc-sha256.txt && \
@@ -344,7 +328,7 @@ RUN yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlwg
 
 WORKDIR /tmp
 RUN source /opt/rh/devtoolset-8/enable && \
-    source /opt/rh/rh-python36/enable && \
+    source /opt/rh/rh-python38/enable && \
     pip3 install \
         lxml \
         psutil \
@@ -355,13 +339,13 @@ RUN source /opt/rh/devtoolset-8/enable && \
     git clone https://github.com/FoundationDB/fdb-joshua . && \
     pip3 install /tmp/fdb-joshua && \
     cd /tmp && \
-    curl -Ls https://amazon-eks.s3.us-west-2.amazonaws.com/1.18.9/2020-11-02/bin/linux/amd64/kubectl -o kubectl && \
-    echo "3dbe69e6deb35fbd6fec95b13d20ac1527544867ae56e3dae17e8c4d638b25b9  kubectl" > kubectl.txt && \
+    curl -Ls https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/kubectl -o kubectl && \
+    echo "08ff68159bbcb844455167abb1d0de75bbfe5ae1b051f81ab060a1988027868a  kubectl" > kubectl.txt && \
     sha256sum -c kubectl.txt && \
     mv kubectl /usr/local/bin/kubectl && \
     chmod 755 /usr/local/bin/kubectl && \
-    curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip -o "awscliv2.zip" && \
-    echo "7ee475f22c1b35cc9e53affbf96a9ffce91706e154a9441d0d39cbf8366b718e  awscliv2.zip" > awscliv2.txt && \
+    curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.2.43.zip -o "awscliv2.zip" && \
+    echo "9a8b3c4e7f72bbcc55e341dce3af42479f2730c225d6d265ee6f9162cfdebdfd  awscliv2.zip" > awscliv2.txt && \
     sha256sum -c awscliv2.txt && \
     unzip -qq awscliv2.zip && \
     ./aws/install && \
@@ -404,8 +388,8 @@ RUN rm -f /root/anaconda-ks.cfg && \
     chmod 755 docker_proxy.sh && \
     printf '%s\n' \
     'source /opt/rh/devtoolset-8/enable' \
-    'source /opt/rh/rh-python36/enable' \
-    'source /opt/rh/rh-ruby26/enable' \
+    'source /opt/rh/rh-python38/enable' \
+    'source /opt/rh/rh-ruby27/enable' \
     '' \
     'function cmk_ci() {' \
     '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.22.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
@@ -446,7 +430,7 @@ FROM build as distcc
 
 RUN useradd distcc && \
     source /opt/rh/devtoolset-8/enable && \
-    source /opt/rh/rh-python36/enable && \
+    source /opt/rh/rh-python38/enable && \
     update-distcc-symlinks
 
 EXPOSE 3632
