@@ -390,7 +390,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
     ./aws/install && \
     rm -rf /tmp/*
 
-ARG FDB_VERSION="6.2.29"
+ARG FDB_VERSION="6.3.18"
 RUN mkdir -p /usr/lib/foundationdb/plugins && \
     curl -Ls https://www.foundationdb.org/downloads/misc/joshua_tls_library.tar.gz | \
         tar --strip-components=1 --no-same-owner --directory /usr/lib/foundationdb/plugins -xz && \
