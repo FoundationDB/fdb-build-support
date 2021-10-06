@@ -171,11 +171,11 @@ RUN curl -Ls https://services.gradle.org/distributions/gradle-7.2-bin.zip -o gra
     rm -rf /tmp/*
 
 # install maven
-RUN curl -Ls https://dlcdn.apache.org/maven/maven-3/3.8.2/binaries/apache-maven-3.8.2-bin.zip -o maven.zip && \
-    echo "065895606bb1622104b0078b527c3da7b7acfbdd8edd9c619da0626628425d6c  maven.zip" > maven-sha.txt && \
+RUN curl -Ls https://dlcdn.apache.org/maven/maven-3/3.8.3/binaries/apache-maven-3.8.3-bin.zip -o maven.zip && \
+    echo "f28cd38f620d76423c4543d5b443cdbdd5cfac2c511626cb92be3d5d273a6959  maven.zip" > maven-sha.txt && \
     sha256sum -c maven-sha.txt && \
     unzip -qq maven.zip && \
-    mv apache-maven-3.8.2 /opt/maven && \
+    mv apache-maven-3.8.3 /opt/maven && \
     echo '[ -x /opt/maven/bin/mvn ] && export PATH=/opt/maven/bin/:$PATH' >> /etc/profile.d/maven.sh && \
     rm -rf /tmp/*
 
