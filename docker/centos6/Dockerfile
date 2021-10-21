@@ -229,7 +229,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
     mkdir jemalloc && \
     tar --strip-components 1 --no-same-owner --no-same-permissions --directory jemalloc -xjf jemalloc-5.2.1.tar.bz2 && \
     cd jemalloc && \
-    ./configure --enable-static --disable-cxx && \
+    ./configure --enable-static --disable-cxx --enable-prof && \
     make && \
     make install && \
     cd .. && \
