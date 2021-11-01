@@ -51,7 +51,7 @@ RUN sed -i -e '/enabled/d' /etc/yum.repos.d/CentOS-Base.repo && \
     rm -rf /var/cache/yum
 
 # build/install autoconf -- same version installed by yum in centos7
-RUN curl -Ls http://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.gz -o autoconf.tar.gz && \
+RUN curl -Ls https://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.gz -o autoconf.tar.gz && \
     echo "954bd69b391edc12d6a4a51a2dd1476543da5c6bbf05a95b59dc0dd6fd4c2969  autoconf.tar.gz" > autoconf-sha.txt && \
     sha256sum -c autoconf-sha.txt && \
     mkdir autoconf && \
@@ -64,7 +64,7 @@ RUN curl -Ls http://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.gz -o autoconf.ta
     rm -rf /tmp/*
 
 # build/install automake -- same version installed by yum in centos7
-RUN curl -Ls http://ftp.gnu.org/gnu/automake/automake-1.13.4.tar.gz -o automake.tar.gz && \
+RUN curl -Ls https://ftp.gnu.org/gnu/automake/automake-1.13.4.tar.gz -o automake.tar.gz && \
     echo "4c93abc0bff54b296f41f92dd3aa1e73e554265a6f719df465574983ef6f878c  automake.tar.gz" > automake-sha.txt && \
     sha256sum -c automake-sha.txt && \
     mkdir automake && \
@@ -75,6 +75,33 @@ RUN curl -Ls http://ftp.gnu.org/gnu/automake/automake-1.13.4.tar.gz -o automake.
     make install && \
     cd ../ && \
     rm -rf /tmp/*
+
+# install docker 19
+ENV DOCKER_BUCKET="download.docker.com" \
+    DOCKER_CHANNEL="stable" \
+    DIND_COMMIT="3b5fac462d21ca164b3778647420016315289034" \
+    DOCKER_COMPOSE_VERSION="1.19.0"
+
+ENV DOCKER_SHA256="0f4336378f61ed73ed55a356ac19e46699a995f2aff34323ba5874d131548b9e"
+ENV DOCKER_VERSION="19.03.11"
+
+VOLUME /var/lib/docker
+
+RUN set -ex \
+    && curl -fSL "https://${DOCKER_BUCKET}/linux/static/${DOCKER_CHANNEL}/x86_64/docker-${DOCKER_VERSION}.tgz" -o docker.tgz \
+    && echo "${DOCKER_SHA256} *docker.tgz" | sha256sum -c - \
+    && tar --extract --file docker.tgz --strip-components 1  --directory /usr/local/bin/ \
+    && rm docker.tgz \
+    && docker -v \
+    # set up subuid/subgid so that "--userns-remap=default" works out-of-the-box
+    && groupadd dockremap \
+    && useradd -g dockremap dockremap \
+    && echo 'dockremap:165536:65536' >> /etc/subuid \
+    && echo 'dockremap:165536:65536' >> /etc/subgid \
+    && wget -nv "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" -O /usr/local/bin/dind \
+    && curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-Linux-x86_64 > /usr/local/bin/docker-compose \
+    && chmod +x /usr/local/bin/dind /usr/local/bin/docker-compose \
+    && docker-compose version
 
 # build/install git
 RUN source /opt/rh/devtoolset-8/enable && \
@@ -159,6 +186,28 @@ RUN curl -Ls https://golang.org/dl/go1.16.7.linux-amd64.tar.gz -o golang.tar.gz 
     source /etc/profile.d/golang.sh && \
     go get github.com/onsi/ginkgo/ginkgo@34fc8cd4f44d95736edd25aba7310a6da69620e1 && \
     rm -rf /tmp/*
+
+# build/install boringssl
+RUN source /opt/rh/devtoolset-8/enable && \
+    source /opt/rh/rh-python36/enable && \
+    source /opt/rh/rh-ruby24/enable && \
+    source /etc/profile.d/golang.sh && \
+    mkdir -p /opt/boringssl && \
+    cd /opt/boringssl && \
+    git clone https://boringssl.googlesource.com/boringssl . && \
+    git checkout e796cc65025982ed1fb9ef41b3f74e8115092816 && \
+    for file in crypto/fipsmodule/rand/fork_detect_test.cc include/openssl/bn.h ssl/test/bssl_shim.cc; do \
+        perl -p -i -e 's/#include <inttypes.h>/#define __STDC_FORMAT_MACROS 1\n#include <inttypes.h>/g;' $file; \
+    done && \
+    perl -p -i -e 's/-Werror/-Werror -fPIC/' CMakeLists.txt && \
+    git diff && \
+    mkdir build && \
+    cd build && \
+    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release .. && \
+    ninja && \
+    ./ssl/ssl_test && \
+    mkdir -p /opt/boringssl/lib && \
+    cp crypto/libcrypto.a ssl/libssl.a /opt/boringssl/lib/
 
 # install gradle
 RUN curl -Ls https://services.gradle.org/distributions/gradle-7.2-bin.zip -o gradle.zip && \
@@ -303,49 +352,6 @@ RUN source /opt/rh/devtoolset-8/enable && \
 
 RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/misc/junit/ctest2junit.xsl -o /opt/ctest2junit.xsl
 
-#    # Setting this environment variable switches from OpenSSL to BoringSSL
-#    ENV OPENSSL_ROOT_DIR=/opt/boringssl
-#
-#    # install BoringSSL:  TODO: They don't seem to have releases(?)  I picked today's master SHA.
-#    RUN cd /opt &&\
-#        git clone https://boringssl.googlesource.com/boringssl &&\
-#        cd boringssl &&\
-#        git checkout e796cc65025982ed1fb9ef41b3f74e8115092816 &&\
-#        mkdir build
-#
-#    # ninja doesn't respect CXXFLAGS, and the boringssl CMakeLists doesn't expose an option to define __STDC_FORMAT_MACROS
-#    # also, enable -fPIC.
-#    # this is moderately uglier than creating a patchfile, but easier to maintain.
-#    RUN cd /opt/boringssl &&\
-#    	for f in crypto/fipsmodule/rand/fork_detect_test.cc \
-#    	         include/openssl/bn.h \
-#    		 ssl/test/bssl_shim.cc ; do \
-#    		perl -p -i -e 's/#include <inttypes.h>/#define __STDC_FORMAT_MACROS 1\n#include <inttypes.h>/g;' $f ; \
-#    	done &&\
-#    	perl -p -i -e 's/-Werror/-Werror -fPIC/' CMakeLists.txt &&\
-#    	git diff
-#
-#    RUN cd /opt/boringssl/build &&\
-#        scl enable devtoolset-8 rh-python36 rh-ruby24 -- cmake -GNinja -DCMAKE_BUILD_TYPE=Release .. &&\
-#        scl enable devtoolset-8 rh-python36 rh-ruby24 -- ninja &&\
-#    	./ssl/ssl_test &&\
-#    	mkdir -p ../lib && cp crypto/libcrypto.a ssl/libssl.a ../lib
-#
-#    # Localize time zone
-#    ARG TIMEZONEINFO=America/Los_Angeles
-#    RUN rm -f /etc/localtime && ln -s /usr/share/zoneinfo/${TIMEZONEINFO} /etc/localtime
-#
-#    LABEL version=${IMAGE_TAG}
-#    ENV DOCKER_IMAGEVER=${IMAGE_TAG}
-#    ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0
-#    ENV CC=/opt/rh/devtoolset-8/root/usr/bin/gcc
-#    ENV CXX=/opt/rh/devtoolset-8/root/usr/bin/g++
-#
-#    ENV CCACHE_NOHASHDIR=true
-#    ENV CCACHE_UMASK=0000
-#    ENV CCACHE_SLOPPINESS="file_macro,time_macros,include_file_mtime,include_file_ctime,file_stat_matches"
-#
-#    CMD scl enable devtoolset-8 rh-python36 rh-ruby24 -- bash
 # =========================== END OF LAYER: build ==============================
 FROM build as devel
 
@@ -447,12 +453,19 @@ RUN rm -f /root/anaconda-ks.cfg && \
     '   j start --tarball $(find ${HOME}/build_output/packages -name correctness\*.tar.gz) "${@}"' \
     '}' \
     '' \
+    'function fmt() {' \
+    '   find ${HOME}/src/foundationdb -type f \( -name \*.c -o -name \*.cpp -o -name \*.h -o -name \*.hpp \) -a \( ! -name sqlite3.amalgamation.c \) -a \( ! -path \*.git\* \) -exec clang-format -style=file -i "{}" \;' \
+    '}' \
+    '' \
     'USER_BASHRC="$HOME/src/.bashrc.local"' \
     'if test -f "$USER_BASHRC"; then' \
     '   source $USER_BASHRC' \
     'fi' \
     '' \
     'bash ${HOME}/docker_proxy.sh' \
+    '# export OPENSSL_ROOT_DIR=/opt/boringssl'  \
+    '# set -o vi'  \
+    '# alias ls="ls -lh --color=auto"' \
     >> .bashrc
 
 # =========================== END OF LAYER: devel ==============================
@@ -480,3 +493,14 @@ ENTRYPOINT distccd \
            --jobs `nproc`
 
 # =========================== END OF LAYER: distcc =============================
+FROM devel as codebuild
+
+COPY dockerd-entrypoint.sh /usr/local/bin/
+RUN chmod 755 /usr/local/bin/dockerd-entrypoint.sh && \
+    yum repolist && \
+    yum install -y iptables && \
+    yum clean all && \
+    rm -rf /var/cache/yum
+ENTRYPOINT ["dockerd-entrypoint.sh"]
+
+# =========================== END OF LAYER: codebuild ==========================

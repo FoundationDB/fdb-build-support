@@ -161,6 +161,28 @@ RUN curl -Ls https://golang.org/dl/go1.16.7.linux-amd64.tar.gz -o golang.tar.gz 
     go get github.com/onsi/ginkgo/ginkgo@34fc8cd4f44d95736edd25aba7310a6da69620e1 && \
     rm -rf /tmp/*
 
+# build/install boringssl
+RUN source /opt/rh/devtoolset-8/enable && \
+    source /opt/rh/rh-python38/enable && \
+    source /opt/rh/rh-ruby27/enable && \
+    source /etc/profile.d/golang.sh && \
+    mkdir -p /opt/boringssl && \
+    cd /opt/boringssl && \
+    git clone https://boringssl.googlesource.com/boringssl . && \
+    git checkout e796cc65025982ed1fb9ef41b3f74e8115092816 && \
+    for file in crypto/fipsmodule/rand/fork_detect_test.cc include/openssl/bn.h ssl/test/bssl_shim.cc; do \
+        perl -p -i -e 's/#include <inttypes.h>/#define __STDC_FORMAT_MACROS 1\n#include <inttypes.h>/g;' $file; \
+    done && \
+    perl -p -i -e 's/-Werror/-Werror -fPIC/' CMakeLists.txt && \
+    git diff && \
+    mkdir build && \
+    cd build && \
+    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release .. && \
+    ninja && \
+    ./ssl/ssl_test && \
+    mkdir -p /opt/boringssl/lib && \
+    cp crypto/libcrypto.a ssl/libssl.a /opt/boringssl/lib/
+
 # install gradle
 RUN curl -Ls https://services.gradle.org/distributions/gradle-7.2-bin.zip -o gradle.zip && \
     echo "f581709a9c35e9cb92e16f585d2c4bc99b2b1a5f85d2badbd3dc6bff59e1e6dd  gradle.zip" > gradle-sha.txt && \
@@ -423,6 +445,9 @@ RUN rm -f /root/anaconda-ks.cfg && \
     'fi' \
     '' \
     'bash ${HOME}/docker_proxy.sh' \
+    '# export OPENSSL_ROOT_DIR=/opt/boringssl'  \
+    '# set -o vi'  \
+    '# alias ls="ls -lh --color=auto"' \
     >> .bashrc
 
 # =========================== END OF LAYER: devel ==============================
