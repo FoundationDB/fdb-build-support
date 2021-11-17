@@ -114,10 +114,12 @@ RUN if [ "$(uname -p)" == "aarch64" ]; then \
     rm -rf /tmp/*
 
 # build/install LLVM
+# compiler-rt, libcxx and libcxxabi can't be built with gcc, so build/install clang13 first,
+# then build/install other components with clang13
 RUN source /opt/rh/devtoolset-8/enable && \
     source /opt/rh/rh-python38/enable && \
-    curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/llvm-project-11.0.0.tar.xz -o llvm.tar.xz && \
-    echo "b7b639fc675fa1c86dd6d0bc32267be9eb34451748d2efd03f674b773000e92b  llvm.tar.xz" > llvm-sha.txt && \
+    curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-13.0.0/llvm-project-13.0.0.src.tar.xz -o llvm.tar.xz && \
+    echo "6075ad30f1ac0e15f07c1bf062c1e1268c241d674f11bd32cdf0e040c71f2bf3  llvm.tar.xz" > llvm-sha.txt && \
     sha256sum -c llvm-sha.txt && \
     mkdir llvm-project && \
     tar --strip-components 1 --no-same-owner --directory llvm-project -xf llvm.tar.xz && \
@@ -128,8 +130,25 @@ RUN source /opt/rh/devtoolset-8/enable && \
         -G Ninja \
         -DLLVM_INCLUDE_EXAMPLES=OFF \
         -DLLVM_INCLUDE_TESTS=OFF \
+        -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld;lldb" \
+        -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
+        ../llvm && \
+    cmake --build . && \
+    cmake --build . --target install && \
+    cd .. && \
+# It must be a clean directory, otherwise there may be undefined behavior.
+    mkdir build2 && \
+    cd build2 && \
+    cmake \
+        -DCMAKE_BUILD_TYPE=Release \
+        -G Ninja \
+        -DLLVM_INCLUDE_EXAMPLES=OFF \
+        -DLLVM_INCLUDE_TESTS=OFF \
+# build clang13 again to pass component check and avoid potential issues
         -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;compiler-rt;libcxx;libcxxabi;libunwind;lld;lldb" \
         -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
+        -DCMAKE_C_COMPILER=/usr/local/bin/clang \
+        -DCMAKE_CXX_COMPILER=/usr/local/bin/clang++ \
         ../llvm && \
     cmake --build . && \
     cmake --build . --target install && \
