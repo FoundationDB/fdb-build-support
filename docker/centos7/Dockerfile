@@ -144,7 +144,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
         -G Ninja \
         -DLLVM_INCLUDE_EXAMPLES=OFF \
         -DLLVM_INCLUDE_TESTS=OFF \
-        # build clang13 again to pass compoment check
+        # build clang13 again to pass component check
         -DLLVM_ENABLE_PROJECTS="clang;compiler-rt;libcxx;libcxxabi;libunwind" \
         -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
         -DCMAKE_C_COMPILER=/usr/local/bin/clang \
