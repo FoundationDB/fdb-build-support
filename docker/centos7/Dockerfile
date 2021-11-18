@@ -123,8 +123,8 @@ RUN source /opt/rh/devtoolset-8/enable && \
     sha256sum -c llvm-sha.txt && \
     mkdir llvm-project && \
     tar --strip-components 1 --no-same-owner --directory llvm-project -xf llvm.tar.xz && \
-    mkdir -p llvm-project/build && \
-    cd llvm-project/build && \
+    mkdir -p llvm-project/build-clang && \
+    cd llvm-project/build-clang && \
     cmake \
         -DCMAKE_BUILD_TYPE=Release \
         -G Ninja \
@@ -136,16 +136,16 @@ RUN source /opt/rh/devtoolset-8/enable && \
     cmake --build . && \
     cmake --build . --target install && \
     cd .. && \
-# It must be a clean directory, otherwise there may be undefined behavior.
-    mkdir build2 && \
-    cd build2 && \
+    # It must be a clean directory, otherwise there may be undefined behavior.
+    mkdir build-libs && \
+    cd build-libs && \
     cmake \
         -DCMAKE_BUILD_TYPE=Release \
         -G Ninja \
         -DLLVM_INCLUDE_EXAMPLES=OFF \
         -DLLVM_INCLUDE_TESTS=OFF \
-# build clang13 again to pass component check and avoid potential issues
-        -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;compiler-rt;libcxx;libcxxabi;libunwind;lld;lldb" \
+        # build clang13 again to pass compoment check
+        -DLLVM_ENABLE_PROJECTS="clang;compiler-rt;libcxx;libcxxabi;libunwind" \
         -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
         -DCMAKE_C_COMPILER=/usr/local/bin/clang \
         -DCMAKE_CXX_COMPILER=/usr/local/bin/clang++ \
