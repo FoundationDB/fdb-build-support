@@ -88,8 +88,8 @@ ENV DOCKER_VERSION="19.03.11"
 VOLUME /var/lib/docker
 
 RUN set -ex \
-    && curl -fSL "https://${DOCKER_BUCKET}/linux/static/${DOCKER_CHANNEL}/x86_64/docker-${DOCKER_VERSION}.tgz" -o docker.tgz \
-    && echo "${DOCKER_SHA256} *docker.tgz" | sha256sum -c - \
+    && curl -fSLs "https://${DOCKER_BUCKET}/linux/static/${DOCKER_CHANNEL}/x86_64/docker-${DOCKER_VERSION}.tgz" -o docker.tgz \
+    && echo "${DOCKER_SHA256} *docker.tgz" | sha256sum --quiet -c - \
     && tar --extract --file docker.tgz --strip-components 1  --directory /usr/local/bin/ \
     && rm docker.tgz \
     && docker -v \
@@ -98,8 +98,8 @@ RUN set -ex \
     && useradd -g dockremap dockremap \
     && echo 'dockremap:165536:65536' >> /etc/subuid \
     && echo 'dockremap:165536:65536' >> /etc/subgid \
-    && wget -nv "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" -O /usr/local/bin/dind \
-    && curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-Linux-x86_64 > /usr/local/bin/docker-compose \
+    && curl -Ls "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" -o /usr/local/bin/dind \
+    && curl -Ls https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-Linux-x86_64 > /usr/local/bin/docker-compose \
     && chmod +x /usr/local/bin/dind /usr/local/bin/docker-compose \
     && docker-compose version
 
@@ -107,7 +107,7 @@ RUN set -ex \
 RUN source /opt/rh/devtoolset-8/enable && \
     curl -Ls https://github.com/git/git/archive/v2.30.0.tar.gz -o git.tar.gz && \
     echo "8db4edd1a0a74ebf4b78aed3f9e25c8f2a7db3c00b1aaee94d1e9834fae24e61  git.tar.gz" > git-sha.txt && \
-    sha256sum -c git-sha.txt && \
+    sha256sum --quiet -c git-sha.txt && \
     mkdir git && \
     tar --strip-components 1 --no-same-owner --directory git -xf git.tar.gz && \
     cd git && \
@@ -120,20 +120,25 @@ RUN source /opt/rh/devtoolset-8/enable && \
 
 # build/install ninja
 RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://github.com/ninja-build/ninja/archive/v1.9.0.zip -o ninja.zip && \
-    echo "8e2e654a418373f10c22e4cc9bdbe9baeca8527ace8d572e0b421e9d9b85b7ef  ninja.zip" > ninja-sha.txt && \
-    sha256sum -c ninja-sha.txt && \
+    curl -Ls https://github.com/ninja-build/ninja/archive/refs/tags/v1.10.2.zip -o ninja.zip && \
+    echo "4e7b67da70a84084d5147a97fcfb867660eff55cc60a95006c389c4ca311b77d  ninja.zip" > ninja-sha.txt && \
+    sha256sum --quiet -c ninja-sha.txt && \
     unzip ninja.zip && \
-    cd ninja-1.9.0 && \
+    cd ninja-1.10.2 && \
     ./configure.py --bootstrap && \
     cp ninja /usr/bin && \
     cd .. && \
     rm -rf /tmp/*
 
 # install cmake
-RUN curl -Ls https://github.com/Kitware/CMake/releases/download/v3.13.4/cmake-3.13.4-Linux-x86_64.tar.gz -o cmake.tar.gz && \
-    echo "563a39e0a7c7368f81bfa1c3aff8b590a0617cdfe51177ddc808f66cc0866c76  cmake.tar.gz" > cmake-sha.txt && \
-    sha256sum -c cmake-sha.txt && \
+RUN if [ "$(uname -p)" == "aarch64" ]; then \
+        curl -Ls https://github.com/Kitware/CMake/releases/download/v3.19.6/cmake-3.19.6-Linux-aarch64.tar.gz -o cmake.tar.gz; \
+        echo "69ec045c6993907a4f4a77349d0a0668f1bd3ce8bc5f6fbab6dc7a7e2ffc4f80  cmake.tar.gz" > cmake-sha.txt; \
+    else \
+        curl -Ls https://github.com/Kitware/CMake/releases/download/v3.19.6/cmake-3.19.6-Linux-x86_64.tar.gz -o cmake.tar.gz; \
+        echo "139580473b84f5c6cf27b1d1ac84e9aa6968aa13e4b1900394c50075b366fb15  cmake.tar.gz" > cmake-sha.txt; \
+    fi && \
+    sha256sum --quiet -c cmake-sha.txt && \
     mkdir cmake && \
     tar --strip-components 1 --no-same-owner --directory cmake -xf cmake.tar.gz && \
     cp -r cmake/* /usr/local/ && \
@@ -166,7 +171,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
 RUN source /opt/rh/devtoolset-8/enable && \
     curl -Ls https://www.openssl.org/source/openssl-1.1.1h.tar.gz -o openssl.tar.gz && \
     echo "5c9ca8774bd7b03e5784f26ae9e9e6d749c9da2438545077e6b3d755a06595d9  openssl.tar.gz" > openssl-sha.txt && \
-    sha256sum -c openssl-sha.txt && \
+    sha256sum --quiet -c openssl-sha.txt && \
     mkdir openssl && \
     tar --strip-components 1 --no-same-owner --directory openssl -xf openssl.tar.gz && \
     cd openssl && \
@@ -180,7 +185,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
 # install golang 1.16
 RUN curl -Ls https://golang.org/dl/go1.16.7.linux-amd64.tar.gz -o golang.tar.gz && \
     echo "7fe7a73f55ba3e2285da36f8b085e5c0159e9564ef5f63ee0ed6b818ade8ef04  golang.tar.gz" > golang-sha.txt && \
-    sha256sum -c golang-sha.txt && \
+    sha256sum --quiet -c golang-sha.txt && \
     tar --directory /usr/local -xf golang.tar.gz && \
     echo '[ -x /usr/local/go/bin/go ] && export GOROOT=/usr/local/go && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
     source /etc/profile.d/golang.sh && \
@@ -213,16 +218,16 @@ RUN source /opt/rh/devtoolset-8/enable && \
 # install gradle
 RUN curl -Ls https://services.gradle.org/distributions/gradle-7.2-bin.zip -o gradle.zip && \
     echo "f581709a9c35e9cb92e16f585d2c4bc99b2b1a5f85d2badbd3dc6bff59e1e6dd  gradle.zip" > gradle-sha.txt && \
-    sha256sum -c gradle-sha.txt && \
+    sha256sum --quiet -c gradle-sha.txt && \
     unzip -qq gradle.zip && \
     mv gradle-7.2 /opt/gradle && \
     echo '[ -x /opt/gradle/bin/gradle ] && export PATH=/opt/gradle/bin/:$PATH' >> /etc/profile.d/gradle.sh && \
     rm -rf /tmp/*
 
 # install maven
-RUN curl -Ls https://dlcdn.apache.org/maven/maven-3/3.8.3/binaries/apache-maven-3.8.3-bin.zip -o maven.zip && \
+RUN curl -Ls https://archive.apache.org/dist/maven/maven-3/3.8.3/binaries/apache-maven-3.8.3-bin.zip -o maven.zip && \
     echo "f28cd38f620d76423c4543d5b443cdbdd5cfac2c511626cb92be3d5d273a6959  maven.zip" > maven-sha.txt && \
-    sha256sum -c maven-sha.txt && \
+    sha256sum --quiet -c maven-sha.txt && \
     unzip -qq maven.zip && \
     mv apache-maven-3.8.3 /opt/maven && \
     echo '[ -x /opt/maven/bin/mvn ] && export PATH=/opt/maven/bin/:$PATH' >> /etc/profile.d/maven.sh && \
@@ -231,7 +236,7 @@ RUN curl -Ls https://dlcdn.apache.org/maven/maven-3/3.8.3/binaries/apache-maven-
 # install rocksdb to /opt
 RUN curl -Ls https://github.com/facebook/rocksdb/archive/v6.22.1.tar.gz -o rocksdb.tar.gz && \
     echo "2df8f34a44eda182e22cf84dee7a14f17f55d305ff79c06fb3cd1e5f8831e00d  rocksdb.tar.gz" > rocksdb-sha.txt && \
-    sha256sum -c rocksdb-sha.txt && \
+    sha256sum --quiet -c rocksdb-sha.txt && \
     tar --directory /opt -xf rocksdb.tar.gz && \
     rm -rf /tmp/*
 
@@ -275,7 +280,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
 RUN source /opt/rh/devtoolset-8/enable && \
     curl -Ls https://github.com/jemalloc/jemalloc/releases/download/5.2.1/jemalloc-5.2.1.tar.bz2 -o jemalloc-5.2.1.tar.bz2 && \
     echo "34330e5ce276099e2e8950d9335db5a875689a4c6a56751ef3b1d8c537f887f6  jemalloc-5.2.1.tar.bz2" > jemalloc-sha.txt && \
-    sha256sum -c jemalloc-sha.txt && \
+    sha256sum --quiet -c jemalloc-sha.txt && \
     mkdir jemalloc && \
     tar --strip-components 1 --no-same-owner --no-same-permissions --directory jemalloc -xjf jemalloc-5.2.1.tar.bz2 && \
     cd jemalloc && \
@@ -289,7 +294,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
 RUN source /opt/rh/devtoolset-8/enable && \
     curl -Ls https://github.com/ccache/ccache/releases/download/v4.0/ccache-4.0.tar.gz -o ccache.tar.gz && \
     echo "ac97af86679028ebc8555c99318352588ff50f515fc3a7f8ed21a8ad367e3d45  ccache.tar.gz" > ccache-sha256.txt && \
-    sha256sum -c ccache-sha256.txt && \
+    sha256sum --quiet -c ccache-sha256.txt && \
     mkdir ccache &&\
     tar --strip-components 1 --no-same-owner --directory ccache -xf ccache.tar.gz && \
     mkdir build && \
@@ -303,7 +308,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
 RUN source /opt/rh/devtoolset-8/enable && \
     curl -Ls https://github.com/ToruNiina/toml11/archive/v3.4.0.tar.gz -o toml.tar.gz && \
     echo "bc6d733efd9216af8c119d8ac64a805578c79cc82b813e4d1d880ca128bd154d  toml.tar.gz" > toml-sha256.txt && \
-    sha256sum -c toml-sha256.txt && \
+    sha256sum --quiet -c toml-sha256.txt && \
     mkdir toml && \
     tar --strip-components 1 --no-same-owner --directory toml -xf toml.tar.gz && \
     mkdir build && \
@@ -326,7 +331,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
     source /opt/rh/rh-python36/enable && \
     curl -Ls https://github.com/distcc/distcc/archive/v3.3.5.tar.gz -o distcc.tar.gz && \
     echo "13a4b3ce49dfc853a3de550f6ccac583413946b3a2fa778ddf503a9edc8059b0  distcc.tar.gz" > distcc-sha256.txt && \
-    sha256sum -c distcc-sha256.txt && \
+    sha256sum --quiet -c distcc-sha256.txt && \
     mkdir distcc && \
     tar --strip-components 1 --no-same-owner --directory distcc -xf distcc.tar.gz && \
     cd distcc && \
@@ -341,7 +346,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
 RUN source /opt/rh/devtoolset-8/enable && \
     curl -Ls https://sourceware.org/pub/valgrind/valgrind-3.17.0.tar.bz2 -o valgrind-3.17.0.tar.bz2 && \
     echo "ad3aec668e813e40f238995f60796d9590eee64a16dff88421430630e69285a2  valgrind-3.17.0.tar.bz2" > valgrind-sha.txt && \
-    sha256sum -c valgrind-sha.txt && \
+    sha256sum --quiet -c valgrind-sha.txt && \
     mkdir valgrind && \
     tar --strip-components 1 --no-same-owner --no-same-permissions --directory valgrind -xjf valgrind-3.17.0.tar.bz2 && \
     cd valgrind && \
@@ -367,7 +372,7 @@ RUN yum repolist && \
         the_silver_searcher \
         tmux \
         tree \
-        vim \
+        vim-enhanced \
         zsh && \
     yum clean all && \
     rm -rf /var/cache/yum
@@ -387,12 +392,12 @@ RUN source /opt/rh/devtoolset-8/enable && \
     cd /tmp && \
     curl -Ls https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/kubectl -o kubectl && \
     echo "08ff68159bbcb844455167abb1d0de75bbfe5ae1b051f81ab060a1988027868a  kubectl" > kubectl.txt && \
-    sha256sum -c kubectl.txt && \
+    sha256sum --quiet -c kubectl.txt && \
     mv kubectl /usr/local/bin/kubectl && \
     chmod 755 /usr/local/bin/kubectl && \
-    curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.2.43.zip -o "awscliv2.zip" && \
+    curl -Ls https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.2.43.zip -o "awscliv2.zip" && \
     echo "9a8b3c4e7f72bbcc55e341dce3af42479f2730c225d6d265ee6f9162cfdebdfd  awscliv2.zip" > awscliv2.txt && \
-    sha256sum -c awscliv2.txt && \
+    sha256sum --quiet -c awscliv2.txt && \
     unzip -qq awscliv2.zip && \
     ./aws/install && \
     rm -rf /tmp/*
