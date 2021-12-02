@@ -50,15 +50,19 @@ RUN rpm --import https://download.mono-project.com/repo/xamarin.gpg && \
 ENV DOCKER_BUCKET="download.docker.com" \
     DOCKER_CHANNEL="stable" \
     DIND_COMMIT="3b5fac462d21ca164b3778647420016315289034" \
-    DOCKER_COMPOSE_VERSION="1.26.0"
+    DOCKER_COMPOSE_VERSION="v2.0.1"
 
-ENV DOCKER_SHA256="0f4336378f61ed73ed55a356ac19e46699a995f2aff34323ba5874d131548b9e"
 ENV DOCKER_VERSION="19.03.11"
 
 VOLUME /var/lib/docker
 
 RUN set -ex \
-    && curl -fSLs "https://${DOCKER_BUCKET}/linux/static/${DOCKER_CHANNEL}/x86_64/docker-${DOCKER_VERSION}.tgz" -o docker.tgz \
+    && if [ "$(uname -m)" == "aarch64" ]; then \
+        DOCKER_SHA256="9cd49fe82f6b7ec413b04daef35bc0c87b01d6da67611e5beef36291538d3145"; \
+    else \
+        DOCKER_SHA256="0f4336378f61ed73ed55a356ac19e46699a995f2aff34323ba5874d131548b9e"; \
+    fi \
+    && curl -fSLs "https://${DOCKER_BUCKET}/linux/static/${DOCKER_CHANNEL}/$(uname -m)/docker-${DOCKER_VERSION}.tgz" -o docker.tgz \
     && echo "${DOCKER_SHA256} *docker.tgz" | sha256sum --quiet -c - \
     && tar --extract --file docker.tgz --strip-components 1  --directory /usr/local/bin/ \
     && rm docker.tgz \
@@ -69,7 +73,7 @@ RUN set -ex \
     && echo 'dockremap:165536:65536' >> /etc/subuid \
     && echo 'dockremap:165536:65536' >> /etc/subgid \
     && curl -Ls "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" -o /usr/local/bin/dind \
-    && curl -Ls https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-Linux-x86_64 > /usr/local/bin/docker-compose \
+    && curl -Ls https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m) > /usr/local/bin/docker-compose \
     && chmod +x /usr/local/bin/dind /usr/local/bin/docker-compose \
     && docker-compose version
 
@@ -101,13 +105,13 @@ RUN source /opt/rh/devtoolset-8/enable && \
     rm -rf /tmp/*
 
 # install cmake
-RUN if [ "$(uname -p)" == "aarch64" ]; then \
-        curl -Ls https://github.com/Kitware/CMake/releases/download/v3.19.6/cmake-3.19.6-Linux-aarch64.tar.gz -o cmake.tar.gz; \
-        echo "69ec045c6993907a4f4a77349d0a0668f1bd3ce8bc5f6fbab6dc7a7e2ffc4f80  cmake.tar.gz" > cmake-sha.txt; \
+RUN if [ "$(uname -m)" == "aarch64" ]; then \
+        CMAKE_SHA256="69ec045c6993907a4f4a77349d0a0668f1bd3ce8bc5f6fbab6dc7a7e2ffc4f80"; \
     else \
-        curl -Ls https://github.com/Kitware/CMake/releases/download/v3.19.6/cmake-3.19.6-Linux-x86_64.tar.gz -o cmake.tar.gz; \
-        echo "139580473b84f5c6cf27b1d1ac84e9aa6968aa13e4b1900394c50075b366fb15  cmake.tar.gz" > cmake-sha.txt; \
+        CMAKE_SHA256="139580473b84f5c6cf27b1d1ac84e9aa6968aa13e4b1900394c50075b366fb15"; \
     fi && \
+    curl -Ls https://github.com/Kitware/CMake/releases/download/v3.19.6/cmake-3.19.6-$(uname -s)-$(uname -m).tar.gz -o cmake.tar.gz && \
+    echo "${CMAKE_SHA256}  cmake.tar.gz" > cmake-sha.txt && \
     sha256sum --quiet -c cmake-sha.txt && \
     mkdir cmake && \
     tar --strip-components 1 --no-same-owner --directory cmake -xf cmake.tar.gz && \
@@ -176,8 +180,15 @@ RUN source /opt/rh/devtoolset-8/enable && \
     rm -rf /tmp/*
 
 # install golang 1.16
-RUN curl -Ls https://golang.org/dl/go1.16.7.linux-amd64.tar.gz -o golang.tar.gz && \
-    echo "7fe7a73f55ba3e2285da36f8b085e5c0159e9564ef5f63ee0ed6b818ade8ef04  golang.tar.gz" > golang-sha.txt && \
+RUN if [ "$(uname -m)" == "aarch64" ]; then \
+        GOLANG_ARCH="arm64"; \
+        GOLANG_SHA256="63d6b53ecbd2b05c1f0e9903c92042663f2f68afdbb67f4d0d12700156869bac"; \
+    else \
+        GOLANG_ARCH="amd64"; \
+        GOLANG_SHA256="7fe7a73f55ba3e2285da36f8b085e5c0159e9564ef5f63ee0ed6b818ade8ef04"; \
+    fi && \
+    curl -Ls https://golang.org/dl/go1.16.7.linux-${GOLANG_ARCH}.tar.gz -o golang.tar.gz && \
+    echo "${GOLANG_SHA256}  golang.tar.gz" > golang-sha.txt && \
     sha256sum --quiet -c golang-sha.txt && \
     tar --directory /usr/local -xf golang.tar.gz && \
     echo '[ -x /usr/local/go/bin/go ] && export GOROOT=/usr/local/go && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
@@ -383,8 +394,13 @@ RUN source /opt/rh/devtoolset-8/enable && \
     sha256sum --quiet -c kubectl.txt && \
     mv kubectl /usr/local/bin/kubectl && \
     chmod 755 /usr/local/bin/kubectl && \
-    curl -Ls https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.2.43.zip -o "awscliv2.zip" && \
-    echo "9a8b3c4e7f72bbcc55e341dce3af42479f2730c225d6d265ee6f9162cfdebdfd  awscliv2.zip" > awscliv2.txt && \
+    if [ "$(uname -m)" == "aarch64" ]; then \
+        AWSCLI_SHA256="40ccb45036e62c0351b307ed0e68f72defa1365e16c2758eb141cd424295ecb3"; \
+    else \
+        AWSCLI_SHA256="9a8b3c4e7f72bbcc55e341dce3af42479f2730c225d6d265ee6f9162cfdebdfd"; \
+    fi && \
+    curl -Ls https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m)-2.2.43.zip -o "awscliv2.zip" && \
+    echo "${AWSCLI_SHA256}  awscliv2.zip" > awscliv2.txt && \
     sha256sum --quiet -c awscliv2.txt && \
     unzip -qq awscliv2.zip && \
     ./aws/install && \
@@ -399,9 +415,14 @@ RUN mkdir -p /usr/lib/foundationdb/plugins && \
     ln -sf /usr/lib64/libfdb_c_${FDB_VERSION}.so /usr/lib64/libfdb_c.so
 
 WORKDIR /root
-RUN curl -Ls https://update.code.visualstudio.com/latest/server-linux-x64/stable -o /tmp/vscode-server-linux-x64.tar.gz && \
+RUN if [ "$(uname -m)" == "aarch64" ]; then \
+        VSCODE_ARCH="arm64"; \
+    else \
+        VSCODE_ARCH="x64"; \
+    fi && \
+    curl -Ls https://update.code.visualstudio.com/latest/server-linux-${VSCODE_ARCH}/stable -o /tmp/vscode-server-linux-${VSCODE_ARCH}.tar.gz && \
     mkdir -p .vscode-server/bin/latest && \
-    tar --strip-components 1 --no-same-owner --directory .vscode-server/bin/latest -xf /tmp/vscode-server-linux-x64.tar.gz && \
+    tar --strip-components 1 --no-same-owner --directory .vscode-server/bin/latest -xf /tmp/vscode-server-linux-${VSCODE_ARCH}.tar.gz && \
     touch .vscode-server/bin/latest/0 && \
     rm -rf /tmp/*
 RUN rm -f /root/anaconda-ks.cfg && \
