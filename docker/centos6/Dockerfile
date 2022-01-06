@@ -149,45 +149,22 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     rm -rf /tmp/*
 
 # build/install LLVM
-# compiler-rt, libcxx and libcxxabi can't be built with gcc<11
-#     ref: https://libcxx.llvm.org/#platform-and-compiler-support)
-# so build and install clang first, then build other components and with clang
-# build clang a second time to pass component check
 RUN source /opt/rh/devtoolset-8/enable && \
-    source /opt/rh/rh-python38/enable && \
-    curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-13.0.0/llvm-project-13.0.0.src.tar.xz -o llvm.tar.xz && \
-    echo "6075ad30f1ac0e15f07c1bf062c1e1268c241d674f11bd32cdf0e040c71f2bf3  llvm.tar.xz" > llvm-sha.txt && \
-    sha256sum --quiet -c llvm-sha.txt && \
+    source /opt/rh/rh-python36/enable && \
+    curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/llvm-project-11.0.0.tar.xz -o llvm.tar.xz && \
+    echo "b7b639fc675fa1c86dd6d0bc32267be9eb34451748d2efd03f674b773000e92b  llvm.tar.xz" > llvm-sha.txt && \
+    sha256sum -c llvm-sha.txt && \
     mkdir llvm-project && \
     tar --strip-components 1 --no-same-owner --directory llvm-project -xf llvm.tar.xz && \
-    cd llvm-project && \
-    mkdir -p build && \
-    cd build && \
+    mkdir -p llvm-project/build && \
+    cd llvm-project/build && \
     cmake \
         -DCMAKE_BUILD_TYPE=Release \
         -G Ninja \
-        -Wno-dev \
         -DLLVM_INCLUDE_EXAMPLES=OFF \
         -DLLVM_INCLUDE_TESTS=OFF \
-        -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld;lldb" \
+        -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;compiler-rt;libcxx;libcxxabi;libunwind;lld;lldb" \
         -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
-        ../llvm && \
-    cmake --build . && \
-    cmake --build . --target install && \
-    cd .. && \
-    rm -rf build && \
-    mkdir build && \
-    cd build && \
-    cmake \
-        -DCMAKE_BUILD_TYPE=Release \
-        -G Ninja \
-        -Wno-dev \
-        -DLLVM_INCLUDE_EXAMPLES=OFF \
-        -DLLVM_INCLUDE_TESTS=OFF \
-        -DLLVM_ENABLE_PROJECTS="clang;compiler-rt;libcxx;libcxxabi;libunwind" \
-        -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
-        -DCMAKE_C_COMPILER=/usr/local/bin/clang \
-        -DCMAKE_CXX_COMPILER=/usr/local/bin/clang++ \
         ../llvm && \
     cmake --build . && \
     cmake --build . --target install && \
