@@ -30,7 +30,7 @@ RUN sed -i -e '/enabled/d' /etc/yum.repos.d/CentOS-Base.repo && \
         dpkg \
         gettext-devel \
         git \
-        golang \
+        iptables \
         java-1.8.0-openjdk-devel \
         libcurl-devel \
         libuuid-devel \
@@ -80,15 +80,19 @@ RUN curl -Ls https://ftp.gnu.org/gnu/automake/automake-1.13.4.tar.gz -o automake
 ENV DOCKER_BUCKET="download.docker.com" \
     DOCKER_CHANNEL="stable" \
     DIND_COMMIT="3b5fac462d21ca164b3778647420016315289034" \
-    DOCKER_COMPOSE_VERSION="1.19.0"
+    DOCKER_COMPOSE_VERSION="v2.0.1"
 
-ENV DOCKER_SHA256="0f4336378f61ed73ed55a356ac19e46699a995f2aff34323ba5874d131548b9e"
 ENV DOCKER_VERSION="19.03.11"
 
 VOLUME /var/lib/docker
 
 RUN set -ex \
-    && curl -fSLs "https://${DOCKER_BUCKET}/linux/static/${DOCKER_CHANNEL}/x86_64/docker-${DOCKER_VERSION}.tgz" -o docker.tgz \
+    && if [ "$(uname -m)" == "aarch64" ]; then \
+        DOCKER_SHA256="9cd49fe82f6b7ec413b04daef35bc0c87b01d6da67611e5beef36291538d3145"; \
+    else \
+        DOCKER_SHA256="0f4336378f61ed73ed55a356ac19e46699a995f2aff34323ba5874d131548b9e"; \
+    fi \
+    && curl -fSLs "https://${DOCKER_BUCKET}/linux/static/${DOCKER_CHANNEL}/$(uname -m)/docker-${DOCKER_VERSION}.tgz" -o docker.tgz \
     && echo "${DOCKER_SHA256} *docker.tgz" | sha256sum --quiet -c - \
     && tar --extract --file docker.tgz --strip-components 1  --directory /usr/local/bin/ \
     && rm docker.tgz \
@@ -99,7 +103,7 @@ RUN set -ex \
     && echo 'dockremap:165536:65536' >> /etc/subuid \
     && echo 'dockremap:165536:65536' >> /etc/subgid \
     && curl -Ls "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" -o /usr/local/bin/dind \
-    && curl -Ls https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-Linux-x86_64 > /usr/local/bin/docker-compose \
+    && curl -Ls https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m) > /usr/local/bin/docker-compose \
     && chmod +x /usr/local/bin/dind /usr/local/bin/docker-compose \
     && docker-compose version
 
@@ -131,13 +135,13 @@ RUN source /opt/rh/devtoolset-8/enable && \
     rm -rf /tmp/*
 
 # install cmake
-RUN if [ "$(uname -p)" == "aarch64" ]; then \
-        curl -Ls https://github.com/Kitware/CMake/releases/download/v3.19.6/cmake-3.19.6-Linux-aarch64.tar.gz -o cmake.tar.gz; \
-        echo "69ec045c6993907a4f4a77349d0a0668f1bd3ce8bc5f6fbab6dc7a7e2ffc4f80  cmake.tar.gz" > cmake-sha.txt; \
+RUN if [ "$(uname -m)" == "aarch64" ]; then \
+        CMAKE_SHA256="69ec045c6993907a4f4a77349d0a0668f1bd3ce8bc5f6fbab6dc7a7e2ffc4f80"; \
     else \
-        curl -Ls https://github.com/Kitware/CMake/releases/download/v3.19.6/cmake-3.19.6-Linux-x86_64.tar.gz -o cmake.tar.gz; \
-        echo "139580473b84f5c6cf27b1d1ac84e9aa6968aa13e4b1900394c50075b366fb15  cmake.tar.gz" > cmake-sha.txt; \
+        CMAKE_SHA256="139580473b84f5c6cf27b1d1ac84e9aa6968aa13e4b1900394c50075b366fb15"; \
     fi && \
+    curl -Ls https://github.com/Kitware/CMake/releases/download/v3.19.6/cmake-3.19.6-$(uname -s)-$(uname -m).tar.gz -o cmake.tar.gz && \
+    echo "${CMAKE_SHA256}  cmake.tar.gz" > cmake-sha.txt && \
     sha256sum --quiet -c cmake-sha.txt && \
     mkdir cmake && \
     tar --strip-components 1 --no-same-owner --directory cmake -xf cmake.tar.gz && \
@@ -145,22 +149,45 @@ RUN if [ "$(uname -p)" == "aarch64" ]; then \
     rm -rf /tmp/*
 
 # build/install LLVM
+# compiler-rt, libcxx and libcxxabi can't be built with gcc<11
+#     ref: https://libcxx.llvm.org/#platform-and-compiler-support)
+# so build and install clang first, then build other components and with clang
+# build clang a second time to pass component check
 RUN source /opt/rh/devtoolset-8/enable && \
-    source /opt/rh/rh-python36/enable && \
-    curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/llvm-project-11.0.0.tar.xz -o llvm.tar.xz && \
-    echo "b7b639fc675fa1c86dd6d0bc32267be9eb34451748d2efd03f674b773000e92b  llvm.tar.xz" > llvm-sha.txt && \
-    sha256sum -c llvm-sha.txt && \
+    source /opt/rh/rh-python38/enable && \
+    curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-13.0.0/llvm-project-13.0.0.src.tar.xz -o llvm.tar.xz && \
+    echo "6075ad30f1ac0e15f07c1bf062c1e1268c241d674f11bd32cdf0e040c71f2bf3  llvm.tar.xz" > llvm-sha.txt && \
+    sha256sum --quiet -c llvm-sha.txt && \
     mkdir llvm-project && \
     tar --strip-components 1 --no-same-owner --directory llvm-project -xf llvm.tar.xz && \
-    mkdir -p llvm-project/build && \
-    cd llvm-project/build && \
+    cd llvm-project && \
+    mkdir -p build && \
+    cd build && \
     cmake \
         -DCMAKE_BUILD_TYPE=Release \
         -G Ninja \
+        -Wno-dev \
         -DLLVM_INCLUDE_EXAMPLES=OFF \
         -DLLVM_INCLUDE_TESTS=OFF \
-        -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;compiler-rt;libcxx;libcxxabi;libunwind;lld;lldb" \
+        -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld;lldb" \
         -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
+        ../llvm && \
+    cmake --build . && \
+    cmake --build . --target install && \
+    cd .. && \
+    rm -rf build && \
+    mkdir build && \
+    cd build && \
+    cmake \
+        -DCMAKE_BUILD_TYPE=Release \
+        -G Ninja \
+        -Wno-dev \
+        -DLLVM_INCLUDE_EXAMPLES=OFF \
+        -DLLVM_INCLUDE_TESTS=OFF \
+        -DLLVM_ENABLE_PROJECTS="clang;compiler-rt;libcxx;libcxxabi;libunwind" \
+        -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
+        -DCMAKE_C_COMPILER=/usr/local/bin/clang \
+        -DCMAKE_CXX_COMPILER=/usr/local/bin/clang++ \
         ../llvm && \
     cmake --build . && \
     cmake --build . --target install && \
@@ -183,8 +210,15 @@ RUN source /opt/rh/devtoolset-8/enable && \
     rm -rf /tmp/*
 
 # install golang 1.16
-RUN curl -Ls https://golang.org/dl/go1.16.7.linux-amd64.tar.gz -o golang.tar.gz && \
-    echo "7fe7a73f55ba3e2285da36f8b085e5c0159e9564ef5f63ee0ed6b818ade8ef04  golang.tar.gz" > golang-sha.txt && \
+RUN if [ "$(uname -m)" == "aarch64" ]; then \
+        GOLANG_ARCH="arm64"; \
+        GOLANG_SHA256="63d6b53ecbd2b05c1f0e9903c92042663f2f68afdbb67f4d0d12700156869bac"; \
+    else \
+        GOLANG_ARCH="amd64"; \
+        GOLANG_SHA256="7fe7a73f55ba3e2285da36f8b085e5c0159e9564ef5f63ee0ed6b818ade8ef04"; \
+    fi && \
+    curl -Ls https://golang.org/dl/go1.16.7.linux-${GOLANG_ARCH}.tar.gz -o golang.tar.gz && \
+    echo "${GOLANG_SHA256}  golang.tar.gz" > golang-sha.txt && \
     sha256sum --quiet -c golang-sha.txt && \
     tar --directory /usr/local -xf golang.tar.gz && \
     echo '[ -x /usr/local/go/bin/go ] && export GOROOT=/usr/local/go && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
@@ -240,40 +274,32 @@ RUN curl -Ls https://github.com/facebook/rocksdb/archive/v6.22.1.tar.gz -o rocks
     tar --directory /opt -xf rocksdb.tar.gz && \
     rm -rf /tmp/*
 
-# install boost 1.67 to /opt
-RUN curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.67.0/source/boost_1_67_0.tar.bz2 -o boost_1_67_0.tar.bz2 && \
-    echo "2684c972994ee57fc5632e03bf044746f6eb45d4920c343937a465fd67a5adba  boost_1_67_0.tar.bz2" > boost-sha-67.txt && \
-    sha256sum -c boost-sha-67.txt && \
-    tar --no-same-owner --directory /opt -xjf boost_1_67_0.tar.bz2 && \
-    rm -rf /opt/boost_1_67_0/libs && \
-    rm -rf /tmp/*
-
-# install Boost::context 1.72 to /opt
+# install Boost::context 1.77 to /opt
 RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.72.0/source/boost_1_72_0.tar.bz2 -o boost_1_72_0.tar.bz2 && \
-    echo "59c9b274bc451cf91a9ba1dd2c7fdcaf5d60b1b3aa83f2c9fa143417cc660722  boost_1_72_0.tar.bz2" > boost-sha-72.txt && \
-    sha256sum -c boost-sha-72.txt && \
-    tar --no-same-owner --directory /opt -xjf boost_1_72_0.tar.bz2 && \
-    cd /opt/boost_1_72_0 &&\
+    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.tar.bz2 -o boost_1_77_0.tar.bz2 && \
+    echo "fc9f85fc030e233142908241af7a846e60630aa7388de9a5fafb1f3a26840854  boost_1_77_0.tar.bz2" > boost-sha.txt && \
+    sha256sum --quiet -c boost-sha.txt && \
+    tar --no-same-owner --directory /opt -xjf boost_1_77_0.tar.bz2 && \
+    cd /opt/boost_1_77_0 &&\
     ./bootstrap.sh --with-libraries=context &&\
-    ./b2 link=static cxxflags=-std=c++14 --prefix=/opt/boost_1_72_0 install &&\
-    rm -rf /opt/boost_1_72_0/libs && \
+    ./b2 link=static cxxflags=-std=c++14 --prefix=/opt/boost_1_77_0 install &&\
+    rm -rf /opt/boost_1_77_0/libs && \
     rm -rf /tmp/*
 
-# Install Boost::context 1.72 to /opt, using clang to compile the library
+# Install Boost::context 1.77 to /opt, using clang to compile the library
 # Boost::context depens on some C++11 features, e.g. std::call_once; however,
 # gcc and clang are using different ABIs, thus a gcc-built Boost::context is
 # not linkable to clang objects.
 RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.72.0/source/boost_1_72_0.tar.bz2 -o boost_1_72_0.tar.bz2 && \
-    echo "59c9b274bc451cf91a9ba1dd2c7fdcaf5d60b1b3aa83f2c9fa143417cc660722  boost_1_72_0.tar.bz2" > boost-sha-72.txt && \
-    sha256sum -c boost-sha-72.txt && \
-    tar --no-same-owner --directory /tmp -xjf boost_1_72_0.tar.bz2 && \
-    mv /tmp/boost_1_72_0 /opt/boost_1_72_0_clang && \
-    cd /opt/boost_1_72_0_clang && \
+    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.tar.bz2 -o boost_1_77_0.tar.bz2 && \
+    echo "fc9f85fc030e233142908241af7a846e60630aa7388de9a5fafb1f3a26840854  boost_1_77_0.tar.bz2" > boost-sha-77.txt && \
+    sha256sum --quiet -c boost-sha-77.txt && \
+    tar --no-same-owner --directory /tmp -xjf boost_1_77_0.tar.bz2 && \
+    mv /tmp/boost_1_77_0 /opt/boost_1_77_0_clang && \
+    cd /opt/boost_1_77_0_clang && \
     ./bootstrap.sh --with-toolset=clang --with-libraries=context && \
-    ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_72_0_clang install && \
-    rm -rf /opt/boost_1_72_0_clang/libs && \
+    ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_77_0_clang install && \
+    rm -rf /opt/boost_1_77_0_clang/libs && \
     rm -rf /tmp/*
 
 # jemalloc (needed for FDB after 6.3)
@@ -395,8 +421,13 @@ RUN source /opt/rh/devtoolset-8/enable && \
     sha256sum --quiet -c kubectl.txt && \
     mv kubectl /usr/local/bin/kubectl && \
     chmod 755 /usr/local/bin/kubectl && \
-    curl -Ls https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.2.43.zip -o "awscliv2.zip" && \
-    echo "9a8b3c4e7f72bbcc55e341dce3af42479f2730c225d6d265ee6f9162cfdebdfd  awscliv2.zip" > awscliv2.txt && \
+    if [ "$(uname -m)" == "aarch64" ]; then \
+        AWSCLI_SHA256="40ccb45036e62c0351b307ed0e68f72defa1365e16c2758eb141cd424295ecb3"; \
+    else \
+        AWSCLI_SHA256="9a8b3c4e7f72bbcc55e341dce3af42479f2730c225d6d265ee6f9162cfdebdfd"; \
+    fi && \
+    curl -Ls https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m)-2.2.43.zip -o "awscliv2.zip" && \
+    echo "${AWSCLI_SHA256}  awscliv2.zip" > awscliv2.txt && \
     sha256sum --quiet -c awscliv2.txt && \
     unzip -qq awscliv2.zip && \
     ./aws/install && \
@@ -502,11 +533,6 @@ ENTRYPOINT distccd \
 FROM devel as codebuild
 
 COPY dockerd-entrypoint.sh /usr/local/bin/
-RUN chmod 755 /usr/local/bin/dockerd-entrypoint.sh && \
-    yum repolist && \
-    yum install -y iptables && \
-    yum clean all && \
-    rm -rf /var/cache/yum
 ENTRYPOINT ["dockerd-entrypoint.sh"]
 
 # =========================== END OF LAYER: codebuild ==========================
