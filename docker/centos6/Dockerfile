@@ -344,14 +344,6 @@ RUN source /opt/rh/devtoolset-8/enable && \
     cd .. && \
     rm -rf /tmp/*
 
-# download old fdbserver binaries
-ARG FDB_VERSION="6.2.29"
-RUN mkdir -p /opt/foundationdb/old && \
-    curl -Ls https://www.foundationdb.org/downloads/misc/fdbservers-${FDB_VERSION}.tar.gz | \
-        tar --no-same-owner --directory /opt/foundationdb/old -xz && \
-    chmod +x /opt/foundationdb/old/* && \
-    ln -sf /opt/foundationdb/old/fdbserver-${FDB_VERSION} /opt/foundationdb/old/fdbserver
-
 # build/install distcc
 RUN source /opt/rh/devtoolset-8/enable && \
     source /opt/rh/rh-python36/enable && \
@@ -381,6 +373,15 @@ RUN source /opt/rh/devtoolset-8/enable && \
     make install && \
     cd .. && \
     rm -rf /tmp/*
+
+# download old fdbserver binaries
+ARG FDB_VERSION="6.3.23"
+RUN mkdir -p /opt/foundationdb/old && \
+    for old_fdb_server_version in 6.3.23 6.3.22 6.3.18 6.3.17 6.3.16 6.3.15 6.3.13 6.3.12 6.3.9 6.2.30 6.2.29 6.2.28 6.2.27 6.2.26 6.2.25 6.2.24 6.2.23 6.2.22 6.2.21 6.2.20 6.2.19 6.2.18 6.2.17 6.2.16 6.2.15 6.2.10 6.1.13 6.1.12 6.1.11 6.1.10 6.0.18 6.0.17 6.0.16 6.0.15 6.0.14 5.2.8 5.2.7 5.1.7 5.1.6; do \
+        curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_server_version}/fdbserver.x86_64 -o /opt/foundationdb/old/fdbserver-${old_fdb_server_version}; \
+    done && \
+    chmod +x /opt/foundationdb/old/* && \
+    ln -sf /opt/foundationdb/old/fdbserver-${FDB_VERSION} /opt/foundationdb/old/fdbserver
 
 RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/misc/junit/ctest2junit.xsl -o /opt/ctest2junit.xsl
 
@@ -435,10 +436,10 @@ RUN source /opt/rh/devtoolset-8/enable && \
 
 ARG FDB_VERSION="6.3.18"
 RUN mkdir -p /usr/lib/foundationdb/plugins && \
-    curl -Ls https://www.foundationdb.org/downloads/misc/joshua_tls_library.tar.gz | \
+    curl -Ls https://fdb-joshua.s3.amazonaws.com/old_tls_library.tgz | \
         tar --strip-components=1 --no-same-owner --directory /usr/lib/foundationdb/plugins -xz && \
     ln -sf /usr/lib/foundationdb/plugins/FDBGnuTLS.so /usr/lib/foundationdb/plugins/fdb-libressl-plugin.so && \
-    curl -Ls https://www.foundationdb.org/downloads/${FDB_VERSION}/linux/libfdb_c_${FDB_VERSION}.so -o /usr/lib64/libfdb_c_${FDB_VERSION}.so && \
+    curl -Ls https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/libfdb_c.x86_64.so -o /usr/lib64/libfdb_c_${FDB_VERSION}.so && \
     ln -sf /usr/lib64/libfdb_c_${FDB_VERSION}.so /usr/lib64/libfdb_c.so
 
 WORKDIR /root
