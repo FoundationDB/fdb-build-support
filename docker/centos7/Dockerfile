@@ -1,7 +1,10 @@
 FROM centos:7 as build
 
 WORKDIR /tmp
-RUN rpm --import https://download.mono-project.com/repo/xamarin.gpg && \
+RUN rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org && \
+    yum -y install https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm && \
+    yum -y --enablerepo=elrepo-kernel install kernel-lt{,-devel,-headers} \ && \
+    rpm --import https://download.mono-project.com/repo/xamarin.gpg && \
     curl -Ls https://download.mono-project.com/repo/centos7-stable.repo | tee /etc/yum.repos.d/mono-centos7-stable.repo && \
     yum repolist && \
     yum install -y \
@@ -24,15 +27,11 @@ RUN rpm --import https://download.mono-project.com/repo/xamarin.gpg && \
         dos2unix \
         dpkg \
         gettext-devel \
-        git \
         iptables \
         java-11-openjdk-devel \
         libcurl-devel \
         libuuid-devel \
         libxslt \
-        lz4 \
-        lz4-devel \
-        lz4-static \
         mono-devel \
         redhat-lsb-core \
         rh-python38 \
@@ -43,7 +42,7 @@ RUN rpm --import https://download.mono-project.com/repo/xamarin.gpg && \
         unzip \
         vim-enhanced \
         wget && \
-    rm /etc/yum.repos.d/mono-centos7-stable.repo && \
+    rm -f /etc/yum.repos.d/mono-centos7-stable.repo && \
     yum clean all && \
     rm -rf /var/cache/yum
 
@@ -77,6 +76,36 @@ RUN set -ex \
     && curl -Ls https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m) > /usr/local/bin/docker-compose \
     && chmod +x /usr/local/bin/dind /usr/local/bin/docker-compose \
     && docker-compose version
+
+# build/install lz4
+RUN source /opt/rh/devtoolset-8/enable && \
+    source /opt/rh/rh-python38/enable && \
+    source /opt/rh/rh-ruby27/enable && \
+    curl -Ls https://github.com/lz4/lz4/archive/refs/tags/v1.9.3.tar.gz -o lz4.tar.gz && \
+    echo "030644df4611007ff7dc962d981f390361e6c97a34e5cbc393ddfbe019ffe2c1 lz4.tar.gz" > lz4-sha.txt && \
+    sha256sum --quiet -c lz4-sha.txt && \
+    mkdir lz4 && \
+    tar --strip-components 1 --no-same-owner --directory lz4 -xf lz4.tar.gz && \
+    cd lz4 && \
+    make && \
+    make install && \
+    cd ../ && \
+    rm -rf /tmp/*
+
+# build/install liburing
+RUN source /opt/rh/devtoolset-8/enable && \
+    source /opt/rh/rh-python38/enable && \
+    source /opt/rh/rh-ruby27/enable && \
+    curl -Ls https://github.com/axboe/liburing/archive/refs/tags/liburing-2.1.tar.gz -o liburing.tar.gz && \
+    echo "f1e0500cb3934b0b61c5020c3999a973c9c93b618faff1eba75aadc95bb03e07  liburing.tar.gz" > liburing-sha.txt && \
+    mkdir liburing && \
+    tar --strip-components 1 --no-same-owner --directory liburing -xf liburing.tar.gz && \
+    cd liburing && \
+    ./configure && \
+    make -j$(nproc) -C src V=1 CPPFLAGS="-Werror" CFLAGS="-g -O2 -Wall -Wextra -Werror" CXXFLAGS="-g -O2 -Wall -Wextra -Werror" && \
+    make install && \
+    cd ../ && \
+    rm -rf /tmp/*
 
 # build/install git
 RUN source /opt/rh/devtoolset-8/enable && \
@@ -239,38 +268,39 @@ RUN curl -Ls https://archive.apache.org/dist/maven/maven-3/3.8.3/binaries/apache
     rm -rf /tmp/*
 
 # install rocksdb to /opt
-RUN curl -Ls https://github.com/facebook/rocksdb/archive/v6.22.1.tar.gz -o rocksdb.tar.gz && \
-    echo "2df8f34a44eda182e22cf84dee7a14f17f55d305ff79c06fb3cd1e5f8831e00d  rocksdb.tar.gz" > rocksdb-sha.txt && \
+RUN curl -Ls https://github.com/facebook/rocksdb/archive/refs/tags/v6.27.3.tar.gz -o rocksdb.tar.gz && \
+    echo "ee29901749b9132692b26f0a6c1d693f47d1a9ed8e3771e60556afe80282bf58  rocksdb.tar.gz" > rocksdb-sha.txt && \
     sha256sum --quiet -c rocksdb-sha.txt && \
     tar --directory /opt -xf rocksdb.tar.gz && \
     rm -rf /tmp/*
 
-# install Boost::context 1.77 to /opt
+# install Boost::context 1.78 to /opt
 RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.tar.bz2 -o boost_1_77_0.tar.bz2 && \
-    echo "fc9f85fc030e233142908241af7a846e60630aa7388de9a5fafb1f3a26840854  boost_1_77_0.tar.bz2" > boost-sha.txt && \
+    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
+    echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
-    tar --no-same-owner --directory /opt -xjf boost_1_77_0.tar.bz2 && \
-    cd /opt/boost_1_77_0 &&\
+    mkdir -p /opt/boost_1_78_0 && \
+    tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0 -xjf boost_1_78_0.tar.bz2 && \
+    cd /opt/boost_1_78_0 && \
     ./bootstrap.sh --with-libraries=context &&\
-    ./b2 link=static cxxflags=-std=c++14 --prefix=/opt/boost_1_77_0 install &&\
-    rm -rf /opt/boost_1_77_0/libs && \
+    ./b2 link=static cxxflags=-std=c++14 --prefix=/opt/boost_1_78_0 install &&\
+    rm -rf /opt/boost_1_78_0/libs && \
     rm -rf /tmp/*
 
-# Install Boost::context 1.77 to /opt, using clang to compile the library
+# Install Boost::context 1.78 to /opt, using clang to compile the library
 # Boost::context depens on some C++11 features, e.g. std::call_once; however,
 # gcc and clang are using different ABIs, thus a gcc-built Boost::context is
 # not linkable to clang objects.
 RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.tar.bz2 -o boost_1_77_0.tar.bz2 && \
-    echo "fc9f85fc030e233142908241af7a846e60630aa7388de9a5fafb1f3a26840854  boost_1_77_0.tar.bz2" > boost-sha-77.txt && \
-    sha256sum --quiet -c boost-sha-77.txt && \
-    tar --no-same-owner --directory /tmp -xjf boost_1_77_0.tar.bz2 && \
-    mv /tmp/boost_1_77_0 /opt/boost_1_77_0_clang && \
-    cd /opt/boost_1_77_0_clang && \
+    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
+    echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
+    sha256sum --quiet -c boost-sha.txt && \
+    mkdir -p /opt/boost_1_78_0_clang && \
+    tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0_clang -xjf boost_1_78_0.tar.bz2 && \
+    cd /opt/boost_1_78_0_clang && \
     ./bootstrap.sh --with-toolset=clang --with-libraries=context && \
-    ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_77_0_clang install && \
-    rm -rf /opt/boost_1_77_0_clang/libs && \
+    ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_78_0_clang install && \
+    rm -rf /opt/boost_1_78_0_clang/libs && \
     rm -rf /tmp/*
 
 # jemalloc (needed for FDB after 6.3)
@@ -446,23 +476,23 @@ RUN rm -f /root/anaconda-ks.cfg && \
     ' }' \
     '}' \
     'EOF' \
-    > docker_proxy.sh && \
-    chmod 755 docker_proxy.sh && \
+    > /usr/local/bin/docker_proxy.sh && \
+    chmod 755 /usr/local/bin/docker_proxy.sh && \
     printf '%s\n' \
     'source /opt/rh/devtoolset-8/enable' \
     'source /opt/rh/rh-python38/enable' \
     'source /opt/rh/rh-ruby27/enable' \
     '' \
     'function cmk_ci() {' \
-    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.22.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.27.3 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
     '    ninja -v -C ${HOME}/build_output -j 84 all packages strip_targets' \
     '}' \
     'function cmk() {' \
-    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.22.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.27.3 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
     '    ninja -C ${HOME}/build_output -j 84' \
     '}' \
     'function ccmk() {' \
-    '    CC=clang CXX=clang++ cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.22.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    CC=clang CXX=clang++ cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.27.3 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
     '    ninja -C ${HOME}/build_output -j 84' \
     '}' \
     'function ct() {' \
@@ -484,10 +514,8 @@ RUN rm -f /root/anaconda-ks.cfg && \
     '   source $USER_BASHRC' \
     'fi' \
     '' \
-    'bash ${HOME}/docker_proxy.sh' \
+    'bash /usr/local/bin/docker_proxy.sh' \
     '# export OPENSSL_ROOT_DIR=/opt/boringssl'  \
-    '# set -o vi'  \
-    '# alias ls="ls -lh --color=auto"' \
     >> .bashrc
 
 # =========================== END OF LAYER: devel ==============================

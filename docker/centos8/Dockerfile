@@ -1,79 +1,54 @@
-FROM centos:6 as build
+FROM centos:8 as build
 
 WORKDIR /tmp
-RUN sed -i -e '/enabled/d' /etc/yum.repos.d/CentOS-Base.repo && \
-    sed -i -e '/gpgcheck=1/a enabled=0' /etc/yum.repos.d/CentOS-Base.repo && \
-    sed -i -n '/6.1/q;p' /etc/yum.repos.d/CentOS-Vault.repo && \
-    sed -i -e "s/6\.0/$(cut -d\  -f3 /etc/redhat-release)/g" /etc/yum.repos.d/CentOS-Vault.repo && \
-    sed -i -e 's/enabled=0/enabled=1/g' /etc/yum.repos.d/CentOS-Vault.repo && \
+RUN rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org && \
+    yum -y install https://www.elrepo.org/elrepo-release-8.el8.elrepo.noarch.rpm && \
+    yum -y --enablerepo=elrepo-kernel install kernel-lt{,-devel,-headers} \ && \
+    rpm --import https://download.mono-project.com/repo/xamarin.gpg && \
+    curl -Ls https://download.mono-project.com/repo/centos8-stable.repo | tee /etc/yum.repos.d/mono-centos8-stable.repo && \
+    yum repolist && \
     yum install -y \
-        centos-release-scl-rh \
         epel-release \
+        glibc-langpack-en \
         scl-utils \
         yum-utils && \
-    yum-config-manager --enable rhel-server-rhscl-7-rpms && \
-    sed -i -e 's/#baseurl=/baseurl=/g' \
-           -e 's/mirror.centos.org/vault.centos.org/g' \
-           -e 's/mirrorlist=/#mirrorlist=/g' \
-           /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo && \
+    yum-config-manager --enable powertools && \
+    yum -y groupinstall "development tools" && \
+    dnf -y module enable ruby:2.7 && \
     yum install -y \
+        autoconf \
+        automake \
         binutils-devel \
         curl \
         debbuild \
-        devtoolset-8 \
-        devtoolset-8-libasan-devel \
-        devtoolset-8-libatomic-devel \
-        devtoolset-8-libtsan-devel \
-        devtoolset-8-libubsan-devel \
-        devtoolset-8-systemtap-sdt-devel \
+        libasan \
+        libatomic \
+        libtsan \
+        libubsan \
+        systemtap-sdt-devel \
         dos2unix \
         dpkg \
         gettext-devel \
         iptables \
-        java-1.8.0-openjdk-devel \
+        java-11-openjdk-devel \
         libcurl-devel \
+        libstdc++-static \
         libuuid-devel \
         libxslt \
-        lz4 \
-        lz4-devel \
-        lz4-static \
         mono-devel \
+        openssl-devel \
         redhat-lsb-core \
-        rh-python36 \
-        rh-python36-python-devel \
-        rh-ruby24 \
+        python38 \
+        python38-devel \
+        ruby \
         rpm-build \
         tcl-devel \
         unzip \
+        vim-enhanced \
         wget && \
+    rm -f /etc/yum.repos.d/mono-centos8-stable.repo && \
     yum clean all && \
     rm -rf /var/cache/yum
-
-# build/install autoconf -- same version installed by yum in centos7
-RUN curl -Ls https://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.gz -o autoconf.tar.gz && \
-    echo "954bd69b391edc12d6a4a51a2dd1476543da5c6bbf05a95b59dc0dd6fd4c2969  autoconf.tar.gz" > autoconf-sha.txt && \
-    sha256sum -c autoconf-sha.txt && \
-    mkdir autoconf && \
-    tar --strip-components 1 --no-same-owner --directory autoconf -xf autoconf.tar.gz && \
-    cd autoconf && \
-    ./configure && \
-    make && \
-    make install && \
-    cd ../ && \
-    rm -rf /tmp/*
-
-# build/install automake -- same version installed by yum in centos7
-RUN curl -Ls https://ftp.gnu.org/gnu/automake/automake-1.13.4.tar.gz -o automake.tar.gz && \
-    echo "4c93abc0bff54b296f41f92dd3aa1e73e554265a6f719df465574983ef6f878c  automake.tar.gz" > automake-sha.txt && \
-    sha256sum -c automake-sha.txt && \
-    mkdir automake && \
-    tar --strip-components 1 --no-same-owner --directory automake -xf automake.tar.gz && \
-    cd automake && \
-    ./configure && \
-    make && \
-    make install && \
-    cd ../ && \
-    rm -rf /tmp/*
 
 # install docker 19
 ENV DOCKER_BUCKET="download.docker.com" \
@@ -106,9 +81,32 @@ RUN set -ex \
     && chmod +x /usr/local/bin/dind /usr/local/bin/docker-compose \
     && docker-compose version
 
+# build/install lz4
+RUN curl -Ls https://github.com/lz4/lz4/archive/refs/tags/v1.9.3.tar.gz -o lz4.tar.gz && \
+    echo "030644df4611007ff7dc962d981f390361e6c97a34e5cbc393ddfbe019ffe2c1 lz4.tar.gz" > lz4-sha.txt && \
+    sha256sum --quiet -c lz4-sha.txt && \
+    mkdir lz4 && \
+    tar --strip-components 1 --no-same-owner --directory lz4 -xf lz4.tar.gz && \
+    cd lz4 && \
+    make && \
+    make install && \
+    cd ../ && \
+    rm -rf /tmp/*
+
+# build/install liburing
+RUN curl -Ls https://github.com/axboe/liburing/archive/refs/tags/liburing-2.1.tar.gz -o liburing.tar.gz && \
+    echo "f1e0500cb3934b0b61c5020c3999a973c9c93b618faff1eba75aadc95bb03e07  liburing.tar.gz" > liburing-sha.txt && \
+    mkdir liburing && \
+    tar --strip-components 1 --no-same-owner --directory liburing -xf liburing.tar.gz && \
+    cd liburing && \
+    ./configure && \
+    make -j$(nproc) -C src V=1 CPPFLAGS="-Werror" CFLAGS="-g -O2 -Wall -Wextra -Werror" CXXFLAGS="-g -O2 -Wall -Wextra -Werror" && \
+    make install && \
+    cd ../ && \
+    rm -rf /tmp/*
+
 # build/install git
-RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://github.com/git/git/archive/v2.30.0.tar.gz -o git.tar.gz && \
+RUN curl -Ls https://github.com/git/git/archive/v2.30.0.tar.gz -o git.tar.gz && \
     echo "8db4edd1a0a74ebf4b78aed3f9e25c8f2a7db3c00b1aaee94d1e9834fae24e61  git.tar.gz" > git-sha.txt && \
     sha256sum --quiet -c git-sha.txt && \
     mkdir git && \
@@ -122,13 +120,12 @@ RUN source /opt/rh/devtoolset-8/enable && \
     rm -rf /tmp/*
 
 # build/install ninja
-RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://github.com/ninja-build/ninja/archive/refs/tags/v1.10.2.zip -o ninja.zip && \
+RUN curl -Ls https://github.com/ninja-build/ninja/archive/refs/tags/v1.10.2.zip -o ninja.zip && \
     echo "4e7b67da70a84084d5147a97fcfb867660eff55cc60a95006c389c4ca311b77d  ninja.zip" > ninja-sha.txt && \
     sha256sum --quiet -c ninja-sha.txt && \
     unzip ninja.zip && \
     cd ninja-1.10.2 && \
-    ./configure.py --bootstrap && \
+    python3 ./configure.py --bootstrap && \
     cp ninja /usr/bin && \
     cd .. && \
     rm -rf /tmp/*
@@ -148,41 +145,47 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     rm -rf /tmp/*
 
 # build/install LLVM
-RUN source /opt/rh/devtoolset-8/enable && \
-    source /opt/rh/rh-python36/enable && \
-    curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/llvm-project-11.0.0.tar.xz -o llvm.tar.xz && \
-    echo "b7b639fc675fa1c86dd6d0bc32267be9eb34451748d2efd03f674b773000e92b  llvm.tar.xz" > llvm-sha.txt && \
-    sha256sum -c llvm-sha.txt && \
+# compiler-rt, libcxx and libcxxabi can't be built with gcc<11
+#     ref: https://libcxx.llvm.org/#platform-and-compiler-support)
+# so build and install clang first, then build other components and with clang
+# build clang a second time to pass component check
+RUN curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-13.0.0/llvm-project-13.0.0.src.tar.xz -o llvm.tar.xz && \
+    echo "6075ad30f1ac0e15f07c1bf062c1e1268c241d674f11bd32cdf0e040c71f2bf3  llvm.tar.xz" > llvm-sha.txt && \
+    sha256sum --quiet -c llvm-sha.txt && \
     mkdir llvm-project && \
     tar --strip-components 1 --no-same-owner --directory llvm-project -xf llvm.tar.xz && \
-    mkdir -p llvm-project/build && \
-    cd llvm-project/build && \
+    cd llvm-project && \
+    mkdir -p build && \
+    cd build && \
     cmake \
         -DCMAKE_BUILD_TYPE=Release \
         -G Ninja \
+        -Wno-dev \
         -DLLVM_INCLUDE_EXAMPLES=OFF \
         -DLLVM_INCLUDE_TESTS=OFF \
-        -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;compiler-rt;libcxx;libcxxabi;libunwind;lld;lldb" \
+        -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld;lldb" \
         -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
         ../llvm && \
     cmake --build . && \
     cmake --build . --target install && \
-    cd ../.. && \
-    rm -rf /tmp/*
-
-# build/install openssl
-RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://www.openssl.org/source/openssl-1.1.1h.tar.gz -o openssl.tar.gz && \
-    echo "5c9ca8774bd7b03e5784f26ae9e9e6d749c9da2438545077e6b3d755a06595d9  openssl.tar.gz" > openssl-sha.txt && \
-    sha256sum --quiet -c openssl-sha.txt && \
-    mkdir openssl && \
-    tar --strip-components 1 --no-same-owner --directory openssl -xf openssl.tar.gz && \
-    cd openssl && \
-    ./config CFLAGS="-fPIC -O3" --prefix=/usr/local && \
-    make -j`nproc` && \
-    make -j1 install && \
-    ln -sv /usr/local/lib64/lib*.so.1.1 /usr/lib64/ && \
     cd .. && \
+    rm -rf build && \
+    mkdir build && \
+    cd build && \
+    cmake \
+        -DCMAKE_BUILD_TYPE=Release \
+        -G Ninja \
+        -Wno-dev \
+        -DLLVM_INCLUDE_EXAMPLES=OFF \
+        -DLLVM_INCLUDE_TESTS=OFF \
+        -DLLVM_ENABLE_PROJECTS="clang;compiler-rt;libcxx;libcxxabi;libunwind" \
+        -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
+        -DCMAKE_C_COMPILER=/usr/local/bin/clang \
+        -DCMAKE_CXX_COMPILER=/usr/local/bin/clang++ \
+        ../llvm && \
+    cmake --build . && \
+    cmake --build . --target install && \
+    cd ../.. && \
     rm -rf /tmp/*
 
 # install golang 1.16
@@ -204,10 +207,7 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     rm -rf /tmp/*
 
 # build/install boringssl
-RUN source /opt/rh/devtoolset-8/enable && \
-    source /opt/rh/rh-python36/enable && \
-    source /opt/rh/rh-ruby24/enable && \
-    source /etc/profile.d/golang.sh && \
+RUN source /etc/profile.d/golang.sh && \
     mkdir -p /opt/boringssl && \
     cd /opt/boringssl && \
     git clone https://boringssl.googlesource.com/boringssl . && \
@@ -244,43 +244,41 @@ RUN curl -Ls https://archive.apache.org/dist/maven/maven-3/3.8.3/binaries/apache
     rm -rf /tmp/*
 
 # install rocksdb to /opt
-RUN curl -Ls https://github.com/facebook/rocksdb/archive/v6.22.1.tar.gz -o rocksdb.tar.gz && \
-    echo "2df8f34a44eda182e22cf84dee7a14f17f55d305ff79c06fb3cd1e5f8831e00d  rocksdb.tar.gz" > rocksdb-sha.txt && \
+RUN curl -Ls https://github.com/facebook/rocksdb/archive/refs/tags/v6.27.3.tar.gz -o rocksdb.tar.gz && \
+    echo "ee29901749b9132692b26f0a6c1d693f47d1a9ed8e3771e60556afe80282bf58  rocksdb.tar.gz" > rocksdb-sha.txt && \
     sha256sum --quiet -c rocksdb-sha.txt && \
     tar --directory /opt -xf rocksdb.tar.gz && \
     rm -rf /tmp/*
 
-# install Boost::context 1.77 to /opt
-RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.tar.bz2 -o boost_1_77_0.tar.bz2 && \
-    echo "fc9f85fc030e233142908241af7a846e60630aa7388de9a5fafb1f3a26840854  boost_1_77_0.tar.bz2" > boost-sha.txt && \
+# install Boost::context 1.78 to /opt
+RUN curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
+    echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
-    tar --no-same-owner --directory /opt -xjf boost_1_77_0.tar.bz2 && \
-    cd /opt/boost_1_77_0 &&\
+    mkdir -p /opt/boost_1_78_0 && \
+    tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0 -xjf boost_1_78_0.tar.bz2 && \
+    cd /opt/boost_1_78_0 && \
     ./bootstrap.sh --with-libraries=context &&\
-    ./b2 link=static cxxflags=-std=c++14 --prefix=/opt/boost_1_77_0 install &&\
-    rm -rf /opt/boost_1_77_0/libs && \
+    ./b2 link=static cxxflags=-std=c++14 --prefix=/opt/boost_1_78_0 install &&\
+    rm -rf /opt/boost_1_78_0/libs && \
     rm -rf /tmp/*
 
-# Install Boost::context 1.77 to /opt, using clang to compile the library
+# Install Boost::context 1.78 to /opt, using clang to compile the library
 # Boost::context depens on some C++11 features, e.g. std::call_once; however,
 # gcc and clang are using different ABIs, thus a gcc-built Boost::context is
 # not linkable to clang objects.
-RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.tar.bz2 -o boost_1_77_0.tar.bz2 && \
-    echo "fc9f85fc030e233142908241af7a846e60630aa7388de9a5fafb1f3a26840854  boost_1_77_0.tar.bz2" > boost-sha-77.txt && \
-    sha256sum --quiet -c boost-sha-77.txt && \
-    tar --no-same-owner --directory /tmp -xjf boost_1_77_0.tar.bz2 && \
-    mv /tmp/boost_1_77_0 /opt/boost_1_77_0_clang && \
-    cd /opt/boost_1_77_0_clang && \
+RUN curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
+    echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
+    sha256sum --quiet -c boost-sha.txt && \
+    mkdir -p /opt/boost_1_78_0_clang && \
+    tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0_clang -xjf boost_1_78_0.tar.bz2 && \
+    cd /opt/boost_1_78_0_clang && \
     ./bootstrap.sh --with-toolset=clang --with-libraries=context && \
-    ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_77_0_clang install && \
-    rm -rf /opt/boost_1_77_0_clang/libs && \
+    ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_78_0_clang install && \
+    rm -rf /opt/boost_1_78_0_clang/libs && \
     rm -rf /tmp/*
 
 # jemalloc (needed for FDB after 6.3)
-RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://github.com/jemalloc/jemalloc/releases/download/5.2.1/jemalloc-5.2.1.tar.bz2 -o jemalloc-5.2.1.tar.bz2 && \
+RUN curl -Ls https://github.com/jemalloc/jemalloc/releases/download/5.2.1/jemalloc-5.2.1.tar.bz2 -o jemalloc-5.2.1.tar.bz2 && \
     echo "34330e5ce276099e2e8950d9335db5a875689a4c6a56751ef3b1d8c537f887f6  jemalloc-5.2.1.tar.bz2" > jemalloc-sha.txt && \
     sha256sum --quiet -c jemalloc-sha.txt && \
     mkdir jemalloc && \
@@ -293,8 +291,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
     rm -rf /tmp/*
 
 # Install CCACHE
-RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://github.com/ccache/ccache/releases/download/v4.0/ccache-4.0.tar.gz -o ccache.tar.gz && \
+RUN curl -Ls https://github.com/ccache/ccache/releases/download/v4.0/ccache-4.0.tar.gz -o ccache.tar.gz && \
     echo "ac97af86679028ebc8555c99318352588ff50f515fc3a7f8ed21a8ad367e3d45  ccache.tar.gz" > ccache-sha256.txt && \
     sha256sum --quiet -c ccache-sha256.txt && \
     mkdir ccache &&\
@@ -307,8 +304,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
     rm -rf /tmp/*
 
 # build/install toml
-RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://github.com/ToruNiina/toml11/archive/v3.4.0.tar.gz -o toml.tar.gz && \
+RUN curl -Ls https://github.com/ToruNiina/toml11/archive/v3.4.0.tar.gz -o toml.tar.gz && \
     echo "bc6d733efd9216af8c119d8ac64a805578c79cc82b813e4d1d880ca128bd154d  toml.tar.gz" > toml-sha256.txt && \
     sha256sum --quiet -c toml-sha256.txt && \
     mkdir toml && \
@@ -321,9 +317,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
     rm -rf /tmp/*
 
 # build/install distcc
-RUN source /opt/rh/devtoolset-8/enable && \
-    source /opt/rh/rh-python36/enable && \
-    curl -Ls https://github.com/distcc/distcc/archive/v3.3.5.tar.gz -o distcc.tar.gz && \
+RUN curl -Ls https://github.com/distcc/distcc/archive/v3.3.5.tar.gz -o distcc.tar.gz && \
     echo "13a4b3ce49dfc853a3de550f6ccac583413946b3a2fa778ddf503a9edc8059b0  distcc.tar.gz" > distcc-sha256.txt && \
     sha256sum --quiet -c distcc-sha256.txt && \
     mkdir distcc && \
@@ -337,8 +331,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
     rm -rf /tmp/*
 
 # valgrind
-RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://sourceware.org/pub/valgrind/valgrind-3.17.0.tar.bz2 -o valgrind-3.17.0.tar.bz2 && \
+RUN curl -Ls https://sourceware.org/pub/valgrind/valgrind-3.17.0.tar.bz2 -o valgrind-3.17.0.tar.bz2 && \
     echo "ad3aec668e813e40f238995f60796d9590eee64a16dff88421430630e69285a2  valgrind-3.17.0.tar.bz2" > valgrind-sha.txt && \
     sha256sum --quiet -c valgrind-sha.txt && \
     mkdir valgrind && \
@@ -365,13 +358,16 @@ RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/mis
 FROM build as devel
 
 # add vscode server
-RUN yum repolist && \
+RUN yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/repo/epel-7/carlwgeorge-ripgrep-epel-7.repo && \
+    yum repolist && \
     yum -y install \
         bash-completion \
         byobu \
         cgdb \
         emacs-nox \
+        fish \
         jq \
+        ripgrep \
         the_silver_searcher \
         tmux \
         tree \
@@ -381,9 +377,7 @@ RUN yum repolist && \
     rm -rf /var/cache/yum
 
 WORKDIR /tmp
-RUN source /opt/rh/devtoolset-8/enable && \
-    source /opt/rh/rh-python36/enable && \
-    pip3 install \
+RUN pip3 install \
         lxml \
         psutil \
         python-dateutil \
@@ -419,6 +413,16 @@ RUN mkdir -p /usr/lib/foundationdb/plugins && \
     ln -sf /usr/lib64/libfdb_c_${FDB_VERSION}.so /usr/lib64/libfdb_c.so
 
 WORKDIR /root
+RUN if [ "$(uname -m)" == "aarch64" ]; then \
+        VSCODE_ARCH="arm64"; \
+    else \
+        VSCODE_ARCH="x64"; \
+    fi && \
+    curl -Ls https://update.code.visualstudio.com/latest/server-linux-${VSCODE_ARCH}/stable -o /tmp/vscode-server-linux-${VSCODE_ARCH}.tar.gz && \
+    mkdir -p .vscode-server/bin/latest && \
+    tar --strip-components 1 --no-same-owner --directory .vscode-server/bin/latest -xf /tmp/vscode-server-linux-${VSCODE_ARCH}.tar.gz && \
+    touch .vscode-server/bin/latest/0 && \
+    rm -rf /tmp/*
 RUN rm -f /root/anaconda-ks.cfg && \
     printf '%s\n' \
     '#!/usr/bin/env bash' \
@@ -441,10 +445,6 @@ RUN rm -f /root/anaconda-ks.cfg && \
     > /usr/local/bin/docker_proxy.sh && \
     chmod 755 /usr/local/bin/docker_proxy.sh && \
     printf '%s\n' \
-    'source /opt/rh/devtoolset-8/enable' \
-    'source /opt/rh/rh-python36/enable' \
-    'source /opt/rh/rh-ruby24/enable' \
-    '' \
     'function cmk_ci() {' \
     '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.22.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
     '    ninja -v -C ${HOME}/build_output -j 84 all packages strip_targets' \
@@ -484,8 +484,6 @@ RUN rm -f /root/anaconda-ks.cfg && \
 FROM build as distcc
 
 RUN useradd distcc && \
-    source /opt/rh/devtoolset-8/enable && \
-    source /opt/rh/rh-python36/enable && \
     update-distcc-symlinks
 
 EXPOSE 3632
