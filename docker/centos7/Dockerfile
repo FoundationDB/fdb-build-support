@@ -23,11 +23,15 @@ RUN rpm --import https://download.mono-project.com/repo/xamarin.gpg && \
         devtoolset-8-systemtap-sdt-devel \
         dos2unix \
         dpkg \
+        # for autofdo
+        elfutils-libelf-devel \
         gettext-devel \
         git \
         iptables \
         java-11-openjdk-devel \
         libcurl-devel \
+        # For protobuf
+        libtool \
         libuuid-devel \
         libxslt \
         lz4 \
@@ -138,6 +142,8 @@ RUN source /opt/rh/devtoolset-8/enable && \
         -DCMAKE_BUILD_TYPE=Release \
         -G Ninja \
         -Wno-dev \
+        # Enable RTTI for autofdo        
+        -DLLVM_ENABLE_RTTI=ON \
         -DLLVM_INCLUDE_EXAMPLES=OFF \
         -DLLVM_INCLUDE_TESTS=OFF \
         -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld;lldb" \
@@ -153,6 +159,8 @@ RUN source /opt/rh/devtoolset-8/enable && \
         -DCMAKE_BUILD_TYPE=Release \
         -G Ninja \
         -Wno-dev \
+        # Enable RTTI for autofdo
+        -DLLVM_ENABLE_RTTI=ON \
         -DLLVM_INCLUDE_EXAMPLES=OFF \
         -DLLVM_INCLUDE_TESTS=OFF \
         -DLLVM_ENABLE_PROJECTS="clang;compiler-rt;libcxx;libcxxabi;libunwind" \
@@ -342,6 +350,31 @@ RUN source /opt/rh/devtoolset-8/enable && \
     ./configure && \
     make && \
     make install && \
+    cd .. && \
+    rm -rf /tmp/*
+
+# protobuf, it's used in autofdo
+RUN source /opt/rh/devtoolset-8/enable && \
+    git clone https://github.com/protocolbuffers/protobuf.git && \
+    cd protobuf && \
+    git submodule update --init --recursive && \
+    ./autogen.sh && \
+    ./configure && \
+    make check && \
+    make install && \
+    cd .. && \
+    rm -rf /tmp/*
+
+# autofdo, the master branch is broken, checkout branch zyang/fix_build instead.
+RUN source /opt/rh/devtoolset-8/enable && \
+    git clone --recursive https://github.com/sfc-gh-zyang/autofdo.git && \
+    cd autofdo && \
+    git checkout zyang/fix_build && \
+    mkdir build && \
+    cd build && \
+    cmake -G Ninja -DCMAKE_INSTALL_PREFIX=. -DLLVM_PATH=/usr/local ../ && \
+    ninja create_llvm_prof && \
+    cp create_llvm_prof /usr/bin && \
     cd .. && \
     rm -rf /tmp/*
 
