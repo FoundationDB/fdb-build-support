@@ -196,8 +196,8 @@ RUN source /opt/rh/devtoolset-8/enable && \
 
 # build/install openssl
 RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://www.openssl.org/source/openssl-1.1.1h.tar.gz -o openssl.tar.gz && \
-    echo "5c9ca8774bd7b03e5784f26ae9e9e6d749c9da2438545077e6b3d755a06595d9  openssl.tar.gz" > openssl-sha.txt && \
+    curl -Ls https://www.openssl.org/source/openssl-1.1.1m.tar.gz -o openssl.tar.gz && \
+    echo "f89199be8b23ca45fc7cb9f1d8d3ee67312318286ad030f5316aca6462db6c96 openssl.tar.gz" > openssl-sha.txt && \
     sha256sum --quiet -c openssl-sha.txt && \
     mkdir openssl && \
     tar --strip-components 1 --no-same-owner --directory openssl -xf openssl.tar.gz && \
