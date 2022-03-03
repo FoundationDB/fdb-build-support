@@ -372,6 +372,17 @@ ln -sf /opt/foundationdb/old/fdbserver-${FDB_VERSION} /opt/foundationdb/old/fdbs
 
 curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/misc/junit/ctest2junit.xsl -o /opt/ctest2junit.xsl
 
+logg "install rust dev tools"
+RUSTUP_VERSION=1.24.3
+RUST_VERSION=1.59.0
+RUST_ARCH="x86_64-unknown-linux-gnu"
+RUST_SHA256="3dc5ef50861ee18657f9db2eeb7392f9c2a6c95c90ab41e45ab4ca71476b4338"
+curl -LsO "https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/${RUST_ARCH}/rustup-init"
+echo "${RUST_SHA256}  rustup-init" > rustup-sha.txt
+sha256sum --quiet -c rustup-sha.txt
+chmod +x rustup-init
+./rustup-init -y --no-modify-path --profile minimal --default-toolchain ${RUST_VERSION} --default-host ${RUST_ARCH}
+
 logg "install developer convenience packages"
 yum repolist
 yum -y install \
@@ -402,6 +413,12 @@ sha256sum --quiet -c kubectl.txt
 mv kubectl /usr/local/bin/kubectl
 chmod 755 /usr/local/bin/kubectl
 
+logg "install k9s"
+curl -Ls https://github.com/derailed/k9s/releases/download/v0.25.18/k9s_Linux_x86_64.tar.gz -o k9s.tar.gz && \
+echo "d288aacc368ab6b243fc9e7ecd17b53fa34a813509c2dc3023171085db83cf9d  k9s.tar.gz" > k9s-sha.txt && \
+sha256sum --quiet -c k9s-sha.txt && \
+tar --no-same-owner --no-same-permissions --directory /usr/local/bin -xzf k9s.tar.gz k9s && \
+
 logg "install awscli"
 if [ "$(uname -m)" == "aarch64" ]; then
     AWSCLI_SHA256="40ccb45036e62c0351b307ed0e68f72defa1365e16c2758eb141cd424295ecb3"
@@ -413,6 +430,19 @@ echo "${AWSCLI_SHA256}  awscliv2.zip" > awscliv2.txt
 sha256sum --quiet -c awscliv2.txt
 unzip -qq awscliv2.zip
 ./aws/install
+
+logg "install tig (git client)"
+source /opt/rh/devtoolset-8/enable
+curl -Ls https://github.com/jonas/tig/releases/download/tig-2.5.4/tig-2.5.4.tar.gz -o tig.tar.gz
+echo "c48284d30287a6365f8a4750eb0b122e78689a1aef8ce1d2961b6843ac246aa7  tig.tar.gz" > tig-sha.txt
+sha256sum --quiet -c tig-sha.txt
+mkdir tig
+tar --strip-components 1 --no-same-owner --no-same-permissions --directory tig -xzf tig.tar.gz
+pushd tig
+./configure
+make
+make install
+popd
 
 FDB_VERSION="6.3.18"
 mkdir -p /usr/lib/foundationdb/plugins
@@ -485,6 +515,8 @@ printf '%s\n' \
 'if test -f "$USER_BASHRC"; then' \
 '   source $USER_BASHRC' \
 'fi' \
+'' \
+'source $HOME/.cargo/env' \
 '' \
 'bash /usr/local/bin/docker_proxy.sh' \
 '# export OPENSSL_ROOT_DIR=/opt/boringssl'  \

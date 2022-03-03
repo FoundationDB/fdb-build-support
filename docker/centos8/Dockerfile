@@ -357,8 +357,7 @@ RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/mis
 
 # Download Rust binaries
 ENV RUSTUP_VERSION=1.24.3 \
-    RUST_VERSION=1.59.0 \
-    RUST_ARCH=x86_64-unknown-linux-gnu
+    RUST_VERSION=1.59.0
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
         RUST_ARCH="aarch64-unknown-linux-gnu"; \
         RUST_SHA256="32a1532f7cef072a667bac53f1a5542c99666c4071af0c9549795bbdb2069ec1"; \
@@ -366,18 +365,16 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
         RUST_ARCH="x86_64-unknown-linux-gnu"; \
         RUST_SHA256="3dc5ef50861ee18657f9db2eeb7392f9c2a6c95c90ab41e45ab4ca71476b4338"; \
     fi && \
-    wget "https://static.rust-lang.org/rustup/archive/$RUSTUP_VERSION/$RUST_ARCH/rustup-init" && \
+    curl -LsO "https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/${RUST_ARCH}/rustup-init" && \
     echo "${RUST_SHA256}  rustup-init" > rustup-sha.txt && \
     sha256sum --quiet -c rustup-sha.txt && \
     chmod +x rustup-init && \
-    ./rustup-init -y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION --default-host $RUST_ARCH && \
-    rm rustup-init && \
-    rm rustup-sha.txt;
+    ./rustup-init -y --no-modify-path --profile minimal --default-toolchain ${RUST_VERSION} --default-host ${RUST_ARCH} && \
+    rm -rf /tmp/*
 
 # =========================== END OF LAYER: build ==============================
 FROM build as devel
 
-# add vscode server
 RUN yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/repo/epel-7/carlwgeorge-ripgrep-epel-7.repo && \
     yum repolist && \
     yum -y install \
@@ -387,9 +384,10 @@ RUN yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlwg
         emacs-nox \
         fish \
         jq \
+        libevent-devel \
+        ncurses-devel \
         ripgrep \
         the_silver_searcher \
-        tmux \
         tree \
         vim-enhanced \
         zsh && \
@@ -410,8 +408,12 @@ RUN pip3 install \
     curl -Ls https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/kubectl -o kubectl && \
     echo "08ff68159bbcb844455167abb1d0de75bbfe5ae1b051f81ab060a1988027868a  kubectl" > kubectl.txt && \
     sha256sum --quiet -c kubectl.txt && \
+    chmod 755 kubectl && \
     mv kubectl /usr/local/bin/kubectl && \
-    chmod 755 /usr/local/bin/kubectl && \
+    curl -Ls https://github.com/derailed/k9s/releases/download/v0.25.18/k9s_Linux_x86_64.tar.gz -o k9s.tar.gz && \
+    echo "d288aacc368ab6b243fc9e7ecd17b53fa34a813509c2dc3023171085db83cf9d  k9s.tar.gz" > k9s-sha.txt && \
+    sha256sum --quiet -c k9s-sha.txt && \
+    tar --no-same-owner --no-same-permissions --directory /usr/local/bin -xzf k9s.tar.gz k9s && \
     if [ "$(uname -m)" == "aarch64" ]; then \
         AWSCLI_SHA256="40ccb45036e62c0351b307ed0e68f72defa1365e16c2758eb141cd424295ecb3"; \
     else \
@@ -424,6 +426,34 @@ RUN pip3 install \
     ./aws/install && \
     rm -rf /tmp/*
 
+# install tig (git client)
+RUN source /opt/rh/devtoolset-8/enable && \
+    curl -Ls https://github.com/jonas/tig/releases/download/tig-2.5.4/tig-2.5.4.tar.gz -o tig.tar.gz && \
+    echo "c48284d30287a6365f8a4750eb0b122e78689a1aef8ce1d2961b6843ac246aa7  tig.tar.gz" > tig-sha.txt && \
+    sha256sum --quiet -c tig-sha.txt && \
+    mkdir tig && \
+    tar --strip-components 1 --no-same-owner --no-same-permissions --directory tig -xzf tig.tar.gz && \
+    cd tig && \
+    ./configure && \
+    make && \
+    make install && \
+    cd .. && \
+    rm -rf /tmp/*
+
+# install newer tmux
+RUN source /opt/rh/devtoolset-8/enable && \
+    curl -Ls https://github.com/tmux/tmux/releases/download/3.1c/tmux-3.1c.tar.gz -o tmux.tar.gz && \
+    echo "918f7220447bef33a1902d4faff05317afd9db4ae1c9971bef5c787ac6c88386  tmux.tar.gz" > tmux-sha.txt && \
+    sha256sum --quiet -c tmux-sha.txt && \
+    mkdir tmux && \
+    tar --strip-components 1 --no-same-owner --no-same-permissions --directory tmux -xzf tmux.tar.gz && \
+    cd tmux && \
+    ./configure && \
+    make && \
+    make install && \
+    cd .. && \
+    rm -rf /tmp/*
+
 ARG FDB_VERSION="6.3.18"
 RUN mkdir -p /usr/lib/foundationdb/plugins && \
     curl -Ls https://fdb-joshua.s3.amazonaws.com/old_tls_library.tgz | \
@@ -433,6 +463,7 @@ RUN mkdir -p /usr/lib/foundationdb/plugins && \
     ln -sf /usr/lib64/libfdb_c_${FDB_VERSION}.so /usr/lib64/libfdb_c.so
 
 WORKDIR /root
+# add vscode server
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
         VSCODE_ARCH="arm64"; \
     else \
@@ -466,15 +497,15 @@ RUN rm -f /root/anaconda-ks.cfg && \
     chmod 755 /usr/local/bin/docker_proxy.sh && \
     printf '%s\n' \
     'function cmk_ci() {' \
-    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.22.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.27.3 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
     '    ninja -v -C ${HOME}/build_output -j 84 all packages strip_targets' \
     '}' \
     'function cmk() {' \
-    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.22.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.27.3 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
     '    ninja -C ${HOME}/build_output -j 84' \
     '}' \
     'function ccmk() {' \
-    '    CC=clang CXX=clang++ cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.22.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    CC=clang CXX=clang++ cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.27.3 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
     '    ninja -C ${HOME}/build_output -j 84' \
     '}' \
     'function ct() {' \
