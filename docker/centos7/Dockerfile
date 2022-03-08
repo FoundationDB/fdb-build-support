@@ -27,6 +27,11 @@ RUN rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org && \
         dos2unix \
         dpkg \
         gettext-devel \
+        gperftools-devel \
+        gperftools-libs \
+        gperftools \
+        ghostscript.x86_64 \
+        gv.x86_64 \
         iptables \
         java-11-openjdk-devel \
         libcurl-devel \
