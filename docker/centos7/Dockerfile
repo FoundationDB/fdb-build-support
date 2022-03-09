@@ -412,6 +412,8 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
 # =========================== END OF LAYER: build ==============================
 FROM build as devel
 
+# protobuf-compiler and protobuf-devel are used to generate reference data for some tests.
+
 RUN yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/repo/epel-7/carlwgeorge-ripgrep-epel-7.repo && \
     yum repolist && \
     yum -y install \
@@ -420,10 +422,16 @@ RUN yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlwg
         cgdb \
         emacs-nox \
         fish \
+        htop \
         jq \
         libevent-devel \
         ncurses-devel \
+        nload \
+        protobuf-compiler \
+        protobuf-devel \
+        nano \
         ripgrep \
+        sysstat \
         the_silver_searcher \
         tree \
         vim-enhanced \
@@ -575,6 +583,13 @@ RUN rm -f /root/anaconda-ks.cfg && \
     'bash /usr/local/bin/docker_proxy.sh' \
     '# export OPENSSL_ROOT_DIR=/opt/boringssl'  \
     >> .bashrc
+
+# Pull in rust developer tools -- we use nightly for development due to extra warning messages and support for cargo fuzz.
+RUN rustup default nightly \
+    rustup component add rust-analysis \
+    rustup component add rust-src \
+    rustup component add rls \
+    cargo install cargo-fuzz
 
 # =========================== END OF LAYER: devel ==============================
 FROM build as distcc
