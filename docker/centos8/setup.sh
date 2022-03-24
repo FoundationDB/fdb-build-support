@@ -73,6 +73,7 @@ yum install -y \
     java-11-openjdk-devel \
     libcurl-devel \
     libstdc++-devel \
+    libtool \
     libuuid-devel \
     libxslt \
     mono-devel \
@@ -247,6 +248,45 @@ ninja
 mkdir -p /opt/boringssl/lib
 cp crypto/libcrypto.a ssl/libssl.a /opt/boringssl/lib/
 popd
+popd
+
+logg "build/install wolfssl"
+source /opt/rh/devtoolset-8/enable
+curl -Ls https://github.com/wolfSSL/wolfssl/archive/refs/tags/v5.2.0-stable.zip -o wolfssl.zip
+cat <<EOF > wolfssl.asc
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEoqSOe8uWxb7LmHMU68gOQVyilncFAmIT1S4ACgkQ68gOQVyi
+lncXqwgAwU89OphGfzciXYn2p46j1XP2zTogUrsSGzbxg84vEqd+5CjQxv+quwkJ
+8ZznKT+o3iq11trO5sUYIqvd1h+7W1IQsktJNxKbyIr+C4YHlERxH/XLZeh1p/d2
+RVseHs9gbeo7jvGGPN5wILOubBkxUNw9Mqk9pzqwAc1/ADo0rirkZUN23v5F1txA
+QkoHi0sM+jiHt+qbEXQ+BM+XQ6fNmqiTGPYkj/P+r23/MmZNSGPvFeEACAqPANMf
+QfLCrmwdv5ETlG1pC9zBup8M2iKj892Hr3M94JG/fEqjjNJoOU6h2fKhWxQID57D
+XeRTzqgTOeJI2QpDAwfR7FF5y9laIQ==
+=udlp
+-----END PGP SIGNATURE-----
+EOF
+WOLFSSL_PUBLIC_KEY="EBC80E415CA29677"
+gpg --keyserver hkps://keys.openpgp.org --recv-key ${WOLFSSL_PUBLIC_KEY}
+gpg --verify wolfssl.asc wolfssl.zip
+unzip wolfssl.zip
+pushd wolfssl-5.2.0-stable
+# add new macro
+sed '/^#define ASN1_IA5STRING.*/a\
+#define ASN1_IA5STRING_new              wolfSSL_ASN1_STRING_new' wolfssl/openssl/ssl.h
+# fix naming collision
+sed -i 's/internal_error/wolfssl_internal_error/g' src/internal.c src/ssl.c wolfssl/ssl.h
+# fix to allow our version of autoconf
+sed -i 's/1\.14\.1/1.13.4/g' configure.ac
+git diff
+./autogen.sh
+./configure CFLAGS="-O3 -fPIC" --prefix=/opt/wolfSSL --enable-aesni \
+ --enable-aesgcm  --enable-aesctr  --enable-intelasm \
+ --enable-sp --enable-sp-asm --enable-sp-math-all \
+ --enable-opensslextra --enable-opensslall --enable-asio \
+ --enable-static  --enable-pwdbased --enable-sessioncerts
+make -j "$(nproc)"
+make install
 popd
 
 logg "install gradle"
