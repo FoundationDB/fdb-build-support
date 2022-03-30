@@ -27,11 +27,11 @@ RUN rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org && \
         dos2unix \
         dpkg \
         gettext-devel \
+        ghostscript \
+        gperftools \
         gperftools-devel \
         gperftools-libs \
-        gperftools \
-        ghostscript.x86_64 \
-        gv.x86_64 \
+        gv \
         iptables \
         java-11-openjdk-devel \
         libcurl-devel \
@@ -510,6 +510,15 @@ RUN mkdir -p /usr/lib/foundationdb/plugins && \
     ln -sf /usr/lib64/libfdb_c_${FDB_VERSION}.so /usr/lib64/libfdb_c.so
 
 WORKDIR /root
+# Pull in rust developer tools -- we use "nightly" for development
+# for extra warning messages and support for cargo fuzz
+RUN source $HOME/.cargo/env \
+    rustup default nightly \
+    rustup component add rust-analysis \
+    rustup component add rust-src \
+    rustup component add rls \
+    cargo install cargo-fuzz
+
 # add vscode server
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
         VSCODE_ARCH="arm64"; \
@@ -583,13 +592,6 @@ RUN rm -f /root/anaconda-ks.cfg && \
     'bash /usr/local/bin/docker_proxy.sh' \
     '# export OPENSSL_ROOT_DIR=/opt/boringssl'  \
     >> .bashrc
-
-# Pull in rust developer tools -- we use nightly for development due to extra warning messages and support for cargo fuzz.
-RUN rustup default nightly \
-    rustup component add rust-analysis \
-    rustup component add rust-src \
-    rustup component add rls \
-    cargo install cargo-fuzz
 
 # =========================== END OF LAYER: devel ==============================
 FROM build as distcc
