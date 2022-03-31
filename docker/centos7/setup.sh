@@ -228,8 +228,8 @@ popd
 
 logg "build/install openssl"
 source /opt/rh/devtoolset-8/enable
-curl -Ls https://www.openssl.org/source/openssl-1.1.1h.tar.gz -o openssl.tar.gz
-echo "5c9ca8774bd7b03e5784f26ae9e9e6d749c9da2438545077e6b3d755a06595d9  openssl.tar.gz" > openssl-sha.txt
+curl -Ls https://www.openssl.org/source/openssl-1.1.1m.tar.gz -o openssl.tar.gz
+echo "f89199be8b23ca45fc7cb9f1d8d3ee67312318286ad030f5316aca6462db6c96  openssl.tar.gz" > openssl-sha.txt
 sha256sum --quiet -c openssl-sha.txt
 mkdir openssl
 tar --strip-components 1 --no-same-owner --directory openssl -xf openssl.tar.gz
@@ -240,15 +240,15 @@ make -j1 install
 ln -sv /usr/local/lib64/lib*.so.1.1 /usr/lib64/
 popd
 
-logg "install golang 1.16"
+# install golang 1.17
 if [ "$(uname -m)" == "aarch64" ]; then
     GOLANG_ARCH="arm64"
-    GOLANG_SHA256="63d6b53ecbd2b05c1f0e9903c92042663f2f68afdbb67f4d0d12700156869bac"
+    GOLANG_SHA256="a5aa1ed17d45ee1d58b4a4099b12f8942acbd1dd09b2e9a6abb1c4898043c5f5"
 else
     GOLANG_ARCH="amd64"
-    GOLANG_SHA256="7fe7a73f55ba3e2285da36f8b085e5c0159e9564ef5f63ee0ed6b818ade8ef04"
+    GOLANG_SHA256="02b111284bedbfa35a7e5b74a06082d18632eff824fd144312f6063943d49259"
 fi
-curl -Ls https://golang.org/dl/go1.16.7.linux-${GOLANG_ARCH}.tar.gz -o golang.tar.gz
+curl -Ls https://golang.org/dl/go1.17.7.linux-${GOLANG_ARCH}.tar.gz -o golang.tar.gz
 echo "${GOLANG_SHA256}  golang.tar.gz" > golang-sha.txt
 sha256sum --quiet -c golang-sha.txt
 tar --directory /usr/local -xf golang.tar.gz
@@ -487,6 +487,19 @@ sha256sum --quiet -c tig-sha.txt
 mkdir tig
 tar --strip-components 1 --no-same-owner --no-same-permissions --directory tig -xzf tig.tar.gz
 pushd tig
+./configure
+make
+make install
+popd
+
+logg "install newer tmux"
+source /opt/rh/devtoolset-8/enable
+curl -Ls https://github.com/tmux/tmux/releases/download/3.1c/tmux-3.1c.tar.gz -o tmux.tar.gz
+echo "918f7220447bef33a1902d4faff05317afd9db4ae1c9971bef5c787ac6c88386  tmux.tar.gz" > tmux-sha.txt
+sha256sum --quiet -c tmux-sha.txt
+mkdir tmux
+tar --strip-components 1 --no-same-owner --no-same-permissions --directory tmux -xzf tmux.tar.gz
+pushd tmux
 ./configure
 make
 make install
