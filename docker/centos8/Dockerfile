@@ -29,6 +29,11 @@ RUN rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org && \
         dos2unix \
         dpkg \
         gettext-devel \
+        ghostscript \
+        gperftools \
+        gperftools-devel \
+        gperftools-libs \
+        gv \
         iptables \
         java-11-openjdk-devel \
         libcurl-devel \
@@ -310,9 +315,10 @@ RUN curl -Ls https://github.com/ToruNiina/toml11/archive/v3.4.0.tar.gz -o toml.t
     sha256sum --quiet -c toml-sha256.txt && \
     mkdir toml && \
     tar --strip-components 1 --no-same-owner --directory toml -xf toml.tar.gz && \
+    cd toml && \
     mkdir build && \
     cd build && \
-    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -Dtoml11_BUILD_TEST=OFF ../toml && \
+    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -Dtoml11_BUILD_TEST=OFF ../ && \
     cmake --build . --target install && \
     cd .. && \
     rm -rf /tmp/*
@@ -375,6 +381,8 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
 # =========================== END OF LAYER: build ==============================
 FROM build as devel
 
+# protobuf-compiler and protobuf-devel are used to generate reference data for some tests.
+
 RUN yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/repo/epel-7/carlwgeorge-ripgrep-epel-7.repo && \
     yum repolist && \
     yum -y install \
@@ -383,10 +391,16 @@ RUN yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlwg
         cgdb \
         emacs-nox \
         fish \
+        htop \
         jq \
         libevent-devel \
         ncurses-devel \
+        nload \
+        protobuf-compiler \
+        protobuf-devel \
+        nano \
         ripgrep \
+        sysstat \
         the_silver_searcher \
         tree \
         vim-enhanced \
@@ -463,6 +477,15 @@ RUN mkdir -p /usr/lib/foundationdb/plugins && \
     ln -sf /usr/lib64/libfdb_c_${FDB_VERSION}.so /usr/lib64/libfdb_c.so
 
 WORKDIR /root
+# Pull in rust developer tools -- we use "nightly" for development
+# for extra warning messages and support for cargo fuzz
+RUN source $HOME/.cargo/env \
+    rustup default nightly \
+    rustup component add rust-analysis \
+    rustup component add rust-src \
+    rustup component add rls \
+    cargo install cargo-fuzz
+
 # add vscode server
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
         VSCODE_ARCH="arm64"; \

@@ -344,9 +344,10 @@ RUN source /opt/rh/devtoolset-8/enable && \
     sha256sum --quiet -c toml-sha256.txt && \
     mkdir toml && \
     tar --strip-components 1 --no-same-owner --directory toml -xf toml.tar.gz && \
+    cd toml && \
     mkdir build && \
     cd build && \
-    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -Dtoml11_BUILD_TEST=OFF ../toml && \
+    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -Dtoml11_BUILD_TEST=OFF ../ && \
     cmake --build . --target install && \
     cd .. && \
     rm -rf /tmp/*
