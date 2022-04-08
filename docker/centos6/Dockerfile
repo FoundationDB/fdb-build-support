@@ -477,7 +477,6 @@ RUN rm -f /root/anaconda-ks.cfg && \
     '   source $USER_BASHRC' \
     'fi' \
     '' \
-    'bash /usr/local/bin/docker_proxy.sh' \
     '# export OPENSSL_ROOT_DIR=/opt/boringssl'  \
     >> .bashrc
 
