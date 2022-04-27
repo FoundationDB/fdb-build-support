@@ -87,7 +87,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
     source /opt/rh/rh-python38/enable && \
     source /opt/rh/rh-ruby27/enable && \
     curl -Ls https://github.com/lz4/lz4/archive/refs/tags/v1.9.3.tar.gz -o lz4.tar.gz && \
-    echo "030644df4611007ff7dc962d981f390361e6c97a34e5cbc393ddfbe019ffe2c1 lz4.tar.gz" > lz4-sha.txt && \
+    echo "030644df4611007ff7dc962d981f390361e6c97a34e5cbc393ddfbe019ffe2c1  lz4.tar.gz" > lz4-sha.txt && \
     sha256sum --quiet -c lz4-sha.txt && \
     mkdir lz4 && \
     tar --strip-components 1 --no-same-owner --directory lz4 -xf lz4.tar.gz && \
