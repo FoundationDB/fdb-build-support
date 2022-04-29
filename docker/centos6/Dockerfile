@@ -35,9 +35,6 @@ RUN sed -i -e '/enabled/d' /etc/yum.repos.d/CentOS-Base.repo && \
         libtool \
         libuuid-devel \
         libxslt \
-        lz4 \
-        lz4-devel \
-        lz4-static \
         mono-devel \
         redhat-lsb-core \
         rh-python36 \
@@ -106,6 +103,22 @@ RUN set -ex \
     && curl -Ls https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m) > /usr/local/bin/docker-compose \
     && chmod +x /usr/local/bin/dind /usr/local/bin/docker-compose \
     && docker-compose version
+
+# build/install lz4
+RUN source /opt/rh/devtoolset-8/enable && \
+    source /opt/rh/rh-python36/enable && \
+    source /opt/rh/rh-ruby24/enable && \
+    curl -Ls https://github.com/lz4/lz4/archive/refs/tags/v1.9.3.tar.gz -o lz4.tar.gz && \
+    echo "030644df4611007ff7dc962d981f390361e6c97a34e5cbc393ddfbe019ffe2c1  lz4.tar.gz" > lz4-sha.txt && \
+    sha256sum --quiet -c lz4-sha.txt && \
+    mkdir lz4 && \
+    tar --strip-components 1 --no-same-owner --directory lz4 -xf lz4.tar.gz && \
+    cd lz4 && \
+    make && \
+    make install && \
+    cd ../ && \
+    rm -rf /tmp/*
+
 
 # build/install git
 RUN source /opt/rh/devtoolset-8/enable && \
@@ -200,7 +213,7 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     tar --directory /usr/local -xf golang.tar.gz && \
     echo '[ -x /usr/local/go/bin/go ] && export GOROOT=/usr/local/go && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
     source /etc/profile.d/golang.sh && \
-    go get github.com/onsi/ginkgo/ginkgo@34fc8cd4f44d95736edd25aba7310a6da69620e1 && \
+    go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.3 && \
     go install golang.org/x/tools/cmd/goimports@latest && \
     go install github.com/segmentio/golines@latest && \
     rm -rf /tmp/*
@@ -285,38 +298,39 @@ RUN curl -Ls https://archive.apache.org/dist/maven/maven-3/3.8.3/binaries/apache
     rm -rf /tmp/*
 
 # install rocksdb to /opt
-RUN curl -Ls https://github.com/facebook/rocksdb/archive/v6.22.1.tar.gz -o rocksdb.tar.gz && \
-    echo "2df8f34a44eda182e22cf84dee7a14f17f55d305ff79c06fb3cd1e5f8831e00d  rocksdb.tar.gz" > rocksdb-sha.txt && \
+RUN curl -Ls https://github.com/facebook/rocksdb/archive/refs/tags/v6.27.3.tar.gz -o rocksdb.tar.gz && \
+    echo "ee29901749b9132692b26f0a6c1d693f47d1a9ed8e3771e60556afe80282bf58  rocksdb.tar.gz" > rocksdb-sha.txt && \
     sha256sum --quiet -c rocksdb-sha.txt && \
     tar --directory /opt -xf rocksdb.tar.gz && \
     rm -rf /tmp/*
 
-# install Boost::context 1.77 to /opt
+# install Boost::context 1.78 to /opt
 RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.tar.bz2 -o boost_1_77_0.tar.bz2 && \
-    echo "fc9f85fc030e233142908241af7a846e60630aa7388de9a5fafb1f3a26840854  boost_1_77_0.tar.bz2" > boost-sha.txt && \
+    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
+    echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
-    tar --no-same-owner --directory /opt -xjf boost_1_77_0.tar.bz2 && \
-    cd /opt/boost_1_77_0 &&\
+    mkdir -p /opt/boost_1_78_0 && \
+    tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0 -xjf boost_1_78_0.tar.bz2 && \
+    cd /opt/boost_1_78_0 && \
     ./bootstrap.sh --with-libraries=context &&\
-    ./b2 link=static cxxflags=-std=c++14 --prefix=/opt/boost_1_77_0 install &&\
-    rm -rf /opt/boost_1_77_0/libs && \
+    ./b2 link=static cxxflags=-std=c++14 --prefix=/opt/boost_1_78_0 install &&\
+    rm -rf /opt/boost_1_78_0/libs && \
     rm -rf /tmp/*
 
-# Install Boost::context 1.77 to /opt, using clang to compile the library
+# Install Boost::context 1.78 to /opt, using clang to compile the library
 # Boost::context depens on some C++11 features, e.g. std::call_once; however,
 # gcc and clang are using different ABIs, thus a gcc-built Boost::context is
 # not linkable to clang objects.
 RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.tar.bz2 -o boost_1_77_0.tar.bz2 && \
-    echo "fc9f85fc030e233142908241af7a846e60630aa7388de9a5fafb1f3a26840854  boost_1_77_0.tar.bz2" > boost-sha-77.txt && \
-    sha256sum --quiet -c boost-sha-77.txt && \
-    tar --no-same-owner --directory /tmp -xjf boost_1_77_0.tar.bz2 && \
-    mv /tmp/boost_1_77_0 /opt/boost_1_77_0_clang && \
-    cd /opt/boost_1_77_0_clang && \
+    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
+    echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
+    sha256sum --quiet -c boost-sha.txt && \
+    mkdir -p /opt/boost_1_78_0_clang && \
+    tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0_clang -xjf boost_1_78_0.tar.bz2 && \
+    cd /opt/boost_1_78_0_clang && \
     ./bootstrap.sh --with-toolset=clang --with-libraries=context && \
-    ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_77_0_clang install && \
-    rm -rf /opt/boost_1_77_0_clang/libs && \
+    ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_78_0_clang install && \
+    rm -rf /opt/boost_1_78_0_clang/libs && \
     rm -rf /tmp/*
 
 # jemalloc (needed for FDB after 6.3)
@@ -354,9 +368,10 @@ RUN source /opt/rh/devtoolset-8/enable && \
     sha256sum --quiet -c toml-sha256.txt && \
     mkdir toml && \
     tar --strip-components 1 --no-same-owner --directory toml -xf toml.tar.gz && \
+    cd toml && \
     mkdir build && \
     cd build && \
-    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -Dtoml11_BUILD_TEST=OFF ../toml && \
+    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -Dtoml11_BUILD_TEST=OFF ../ && \
     cmake --build . --target install && \
     cd .. && \
     rm -rf /tmp/*
@@ -391,14 +406,18 @@ RUN source /opt/rh/devtoolset-8/enable && \
     cd .. && \
     rm -rf /tmp/*
 
-# download old fdbserver binaries
-ARG FDB_VERSION="6.3.23"
-RUN mkdir -p /opt/foundationdb/old && \
-    for old_fdb_server_version in 6.3.23 6.3.22 6.3.18 6.3.17 6.3.16 6.3.15 6.3.13 6.3.12 6.3.9 6.2.30 6.2.29 6.2.28 6.2.27 6.2.26 6.2.25 6.2.24 6.2.23 6.2.22 6.2.21 6.2.20 6.2.19 6.2.18 6.2.17 6.2.16 6.2.15 6.2.10 6.1.13 6.1.12 6.1.11 6.1.10 6.0.18 6.0.17 6.0.16 6.0.15 6.0.14 5.2.8 5.2.7 5.1.7 5.1.6; do \
-        curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_server_version}/fdbserver.x86_64 -o /opt/foundationdb/old/fdbserver-${old_fdb_server_version}; \
-    done && \
-    chmod +x /opt/foundationdb/old/* && \
-    ln -sf /opt/foundationdb/old/fdbserver-${FDB_VERSION} /opt/foundationdb/old/fdbserver
+# download old fdb binaries and client lib
+RUN for old_fdb_version in 7.1.2 7.0.0 6.3.23 6.3.22 6.3.18 6.3.17 6.3.16 6.3.15 6.3.13 6.3.12 6.3.9 6.2.30 6.2.29 6.2.28 6.2.27 6.2.26 6.2.25 6.2.24 6.2.23 6.2.22 6.2.21 6.2.20 6.2.19 6.2.18 6.2.17 6.2.16 6.2.15 6.2.10 6.1.13 6.1.12 6.1.11 6.1.10 6.0.18 6.0.17 6.0.16 6.0.15 6.0.14 5.2.8 5.2.7 5.1.7 5.1.6; do \
+        mkdir -p /opt/foundationdb/old/${old_fdb_version}/bin; \
+        curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/fdbserver.x86_64 -o /opt/foundationdb/old/${old_fdb_version}/bin/fdbserver-${old_fdb_version}; \
+        chmod +x /opt/foundationdb/old/${old_fdb_version}/bin/fdbserver-${old_fdb_version}; \
+        curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/fdbmonitor.x86_64 -o /opt/foundationdb/old/${old_fdb_version}/bin/fdbmonitor-${old_fdb_version}; \
+        chmod +x /opt/foundationdb/old/${old_fdb_version}/bin/fdbmonitor-${old_fdb_version}; \
+        curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/fdbcli.x86_64    -o /opt/foundationdb/old/${old_fdb_version}/bin/fdbcli-${old_fdb_version}; \
+        chmod +x /opt/foundationdb/old/${old_fdb_version}/bin/fdbcli-${old_fdb_version}; \
+        mkdir -p /opt/foundationdb/old/${old_fdb_version}/lib; \
+        curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/libfdb_c.x86_64.so    -o /opt/foundationdb/old/${old_fdb_version}/lib/libfdb_c-${old_fdb_version}.so; \
+    done
 
 RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/misc/junit/ctest2junit.xsl -o /opt/ctest2junit.xsl
 
@@ -413,8 +432,9 @@ RUN yum repolist && \
         cgdb \
         emacs-nox \
         jq \
+        libevent-devel \
+        ncurses-devel \
         the_silver_searcher \
-        tmux \
         tree \
         vim-enhanced \
         zsh && \
@@ -437,8 +457,12 @@ RUN source /opt/rh/devtoolset-8/enable && \
     curl -Ls https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/kubectl -o kubectl && \
     echo "08ff68159bbcb844455167abb1d0de75bbfe5ae1b051f81ab060a1988027868a  kubectl" > kubectl.txt && \
     sha256sum --quiet -c kubectl.txt && \
+    chmod 755 kubectl && \
     mv kubectl /usr/local/bin/kubectl && \
-    chmod 755 /usr/local/bin/kubectl && \
+    curl -Ls https://github.com/derailed/k9s/releases/download/v0.25.18/k9s_Linux_x86_64.tar.gz -o k9s.tar.gz && \
+    echo "d288aacc368ab6b243fc9e7ecd17b53fa34a813509c2dc3023171085db83cf9d  k9s.tar.gz" > k9s-sha.txt && \
+    sha256sum --quiet -c k9s-sha.txt && \
+    tar --no-same-owner --no-same-permissions --directory /usr/local/bin -xzf k9s.tar.gz k9s && \
     if [ "$(uname -m)" == "aarch64" ]; then \
         AWSCLI_SHA256="40ccb45036e62c0351b307ed0e68f72defa1365e16c2758eb141cd424295ecb3"; \
     else \
@@ -487,15 +511,15 @@ RUN rm -f /root/anaconda-ks.cfg && \
     'source /opt/rh/rh-ruby24/enable' \
     '' \
     'function cmk_ci() {' \
-    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.22.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.27.3 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
     '    ninja -v -C ${HOME}/build_output -j 84 all packages strip_targets' \
     '}' \
     'function cmk() {' \
-    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.22.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.27.3 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
     '    ninja -C ${HOME}/build_output -j 84' \
     '}' \
     'function ccmk() {' \
-    '    CC=clang CXX=clang++ cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.22.1 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    CC=clang CXX=clang++ cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.27.3 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
     '    ninja -C ${HOME}/build_output -j 84' \
     '}' \
     'function ct() {' \
@@ -517,7 +541,6 @@ RUN rm -f /root/anaconda-ks.cfg && \
     '   source $USER_BASHRC' \
     'fi' \
     '' \
-    'bash /usr/local/bin/docker_proxy.sh' \
     '# export OPENSSL_ROOT_DIR=/opt/boringssl'  \
     >> .bashrc
 

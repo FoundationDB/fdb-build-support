@@ -27,11 +27,11 @@ RUN rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org && \
         dos2unix \
         dpkg \
         gettext-devel \
+        ghostscript \
+        gperftools \
         gperftools-devel \
         gperftools-libs \
-        gperftools \
-        ghostscript.x86_64 \
-        gv.x86_64 \
+        gv \
         iptables \
         java-11-openjdk-devel \
         libcurl-devel \
@@ -88,7 +88,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
     source /opt/rh/rh-python38/enable && \
     source /opt/rh/rh-ruby27/enable && \
     curl -Ls https://github.com/lz4/lz4/archive/refs/tags/v1.9.3.tar.gz -o lz4.tar.gz && \
-    echo "030644df4611007ff7dc962d981f390361e6c97a34e5cbc393ddfbe019ffe2c1 lz4.tar.gz" > lz4-sha.txt && \
+    echo "030644df4611007ff7dc962d981f390361e6c97a34e5cbc393ddfbe019ffe2c1  lz4.tar.gz" > lz4-sha.txt && \
     sha256sum --quiet -c lz4-sha.txt && \
     mkdir lz4 && \
     tar --strip-components 1 --no-same-owner --directory lz4 -xf lz4.tar.gz && \
@@ -229,7 +229,7 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     tar --directory /usr/local -xf golang.tar.gz && \
     echo '[ -x /usr/local/go/bin/go ] && export GOROOT=/usr/local/go && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
     source /etc/profile.d/golang.sh && \
-    go get github.com/onsi/ginkgo/ginkgo@34fc8cd4f44d95736edd25aba7310a6da69620e1 && \
+    go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.3 && \
     go install golang.org/x/tools/cmd/goimports@latest && \
     go install github.com/segmentio/golines@latest && \
     rm -rf /tmp/*
@@ -384,9 +384,10 @@ RUN source /opt/rh/devtoolset-8/enable && \
     sha256sum --quiet -c toml-sha256.txt && \
     mkdir toml && \
     tar --strip-components 1 --no-same-owner --directory toml -xf toml.tar.gz && \
+    cd toml && \
     mkdir build && \
     cd build && \
-    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -Dtoml11_BUILD_TEST=OFF ../toml && \
+    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -Dtoml11_BUILD_TEST=OFF ../ && \
     cmake --build . --target install && \
     cd .. && \
     rm -rf /tmp/*
@@ -421,14 +422,18 @@ RUN source /opt/rh/devtoolset-8/enable && \
     cd .. && \
     rm -rf /tmp/*
 
-# download old fdbserver binaries
-ARG FDB_VERSION="6.3.23"
-RUN mkdir -p /opt/foundationdb/old && \
-    for old_fdb_server_version in 6.3.23 6.3.22 6.3.18 6.3.17 6.3.16 6.3.15 6.3.13 6.3.12 6.3.9 6.2.30 6.2.29 6.2.28 6.2.27 6.2.26 6.2.25 6.2.24 6.2.23 6.2.22 6.2.21 6.2.20 6.2.19 6.2.18 6.2.17 6.2.16 6.2.15 6.2.10 6.1.13 6.1.12 6.1.11 6.1.10 6.0.18 6.0.17 6.0.16 6.0.15 6.0.14 5.2.8 5.2.7 5.1.7 5.1.6; do \
-        curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_server_version}/fdbserver.x86_64 -o /opt/foundationdb/old/fdbserver-${old_fdb_server_version}; \
-    done && \
-    chmod +x /opt/foundationdb/old/* && \
-    ln -sf /opt/foundationdb/old/fdbserver-${FDB_VERSION} /opt/foundationdb/old/fdbserver
+# download old fdb binaries and client lib
+RUN for old_fdb_version in 7.1.2 7.0.0 6.3.23 6.3.22 6.3.18 6.3.17 6.3.16 6.3.15 6.3.13 6.3.12 6.3.9 6.2.30 6.2.29 6.2.28 6.2.27 6.2.26 6.2.25 6.2.24 6.2.23 6.2.22 6.2.21 6.2.20 6.2.19 6.2.18 6.2.17 6.2.16 6.2.15 6.2.10 6.1.13 6.1.12 6.1.11 6.1.10 6.0.18 6.0.17 6.0.16 6.0.15 6.0.14 5.2.8 5.2.7 5.1.7 5.1.6; do \
+        mkdir -p /opt/foundationdb/old/${old_fdb_version}/bin; \
+        curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/fdbserver.x86_64 -o /opt/foundationdb/old/${old_fdb_version}/bin/fdbserver-${old_fdb_version}; \
+        chmod +x /opt/foundationdb/old/${old_fdb_version}/bin/fdbserver-${old_fdb_version}; \
+        curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/fdbmonitor.x86_64 -o /opt/foundationdb/old/${old_fdb_version}/bin/fdbmonitor-${old_fdb_version}; \
+        chmod +x /opt/foundationdb/old/${old_fdb_version}/bin/fdbmonitor-${old_fdb_version}; \
+        curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/fdbcli.x86_64    -o /opt/foundationdb/old/${old_fdb_version}/bin/fdbcli-${old_fdb_version}; \
+        chmod +x /opt/foundationdb/old/${old_fdb_version}/bin/fdbcli-${old_fdb_version}; \
+        mkdir -p /opt/foundationdb/old/${old_fdb_version}/lib; \
+        curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/libfdb_c.x86_64.so    -o /opt/foundationdb/old/${old_fdb_version}/lib/libfdb_c-${old_fdb_version}.so; \
+    done
 
 RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/misc/junit/ctest2junit.xsl -o /opt/ctest2junit.xsl
 
@@ -550,6 +555,15 @@ RUN mkdir -p /usr/lib/foundationdb/plugins && \
     ln -sf /usr/lib64/libfdb_c_${FDB_VERSION}.so /usr/lib64/libfdb_c.so
 
 WORKDIR /root
+# Pull in rust developer tools -- we use "nightly" for development
+# for extra warning messages and support for cargo fuzz
+RUN source $HOME/.cargo/env \
+    rustup default nightly \
+    rustup component add rust-analysis \
+    rustup component add rust-src \
+    rustup component add rls \
+    cargo install cargo-fuzz
+
 # add vscode server
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
         VSCODE_ARCH="arm64"; \
@@ -620,16 +634,8 @@ RUN rm -f /root/anaconda-ks.cfg && \
     '' \
     'source $HOME/.cargo/env' \
     '' \
-    'bash /usr/local/bin/docker_proxy.sh' \
     '# export OPENSSL_ROOT_DIR=/opt/boringssl'  \
     >> .bashrc
-
-# Pull in rust developer tools -- we use nightly for development due to extra warning messages and support for cargo fuzz.
-RUN rustup default nightly \
-    rustup component add rust-analysis \
-    rustup component add rust-src \
-    rustup component add rls \
-    cargo install cargo-fuzz
 
 # =========================== END OF LAYER: devel ==============================
 FROM build as distcc
