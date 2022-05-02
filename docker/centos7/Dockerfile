@@ -258,33 +258,19 @@ RUN source /opt/rh/devtoolset-8/enable && \
 
 # build/install wolfssl
 RUN source /opt/rh/devtoolset-8/enable && \
-    curl -Ls https://github.com/wolfSSL/wolfssl/archive/refs/tags/v5.2.0-stable.zip -o wolfssl.zip && \
-    printf '%s\n' \
-    '-----BEGIN PGP SIGNATURE-----' \
-    '' \
-    'iQEzBAABCgAdFiEEoqSOe8uWxb7LmHMU68gOQVyilncFAmIT1S4ACgkQ68gOQVyi' \
-    'lncXqwgAwU89OphGfzciXYn2p46j1XP2zTogUrsSGzbxg84vEqd+5CjQxv+quwkJ' \
-    '8ZznKT+o3iq11trO5sUYIqvd1h+7W1IQsktJNxKbyIr+C4YHlERxH/XLZeh1p/d2' \
-    'RVseHs9gbeo7jvGGPN5wILOubBkxUNw9Mqk9pzqwAc1/ADo0rirkZUN23v5F1txA' \
-    'QkoHi0sM+jiHt+qbEXQ+BM+XQ6fNmqiTGPYkj/P+r23/MmZNSGPvFeEACAqPANMf' \
-    'QfLCrmwdv5ETlG1pC9zBup8M2iKj892Hr3M94JG/fEqjjNJoOU6h2fKhWxQID57D' \
-    'XeRTzqgTOeJI2QpDAwfR7FF5y9laIQ==' \
-    '=udlp' \
-    '-----END PGP SIGNATURE-----' \
-    'EOF' > wolfssl.asc && \
-    WOLFSSL_PUBLIC_KEY="EBC80E415CA29677" \
-    gpg --keyserver hkps://keys.openpgp.org --recv-key ${WOLFSSL_PUBLIC_KEY} && \
-    gpg --verify wolfssl.asc wolfssl.zip && \
-    unzip wolfssl.zip && \
-    pushd wolfssl-5.2.0-stable && \
+    mkdir wolfssl && \
+    pushd  wolfssl && \
+    git init && \
+    git remote add origin https://github.com/wolfSSL/wolfssl.git && \
+    # e1829e6: Add wolfSSL_EVP_PKEY_paramgen to the compatibility layer. \
+    git fetch --depth 1 origin e1829e614d35ad2dd1d6cc06d493158f16cca505 && \
+    git checkout FETCH_HEAD && \
     # add new macro \
-    sed '/^#define ASN1_IA5STRING.*/a\ \
-    #define ASN1_IA5STRING_new              wolfSSL_ASN1_STRING_new' wolfssl/openssl/ssl.h && \
+    sed -i "$(grep -nE '^#define ASN1_IA5STRING.*' wolfssl/openssl/ssl.h | awk -F':' '{ print $1 }' | head -n1) i #define ASN1_IA5STRING_new              wolfSSL_ASN1_STRING_new" wolfssl/openssl/ssl.h && \
     # fix naming collision \
     sed -i 's/internal_error/wolfssl_internal_error/g' src/internal.c src/ssl.c wolfssl/ssl.h && \
     # fix to allow our version of autoconf \
     sed -i 's/1\.14\.1/1.13.4/g' configure.ac && \
-    git diff && \
     ./autogen.sh && \
     ./configure CFLAGS="-O3 -fPIC" --prefix=/opt/wolfSSL --enable-aesni \
      --enable-aesgcm  --enable-aesctr  --enable-intelasm \
@@ -293,7 +279,8 @@ RUN source /opt/rh/devtoolset-8/enable && \
      --enable-static  --enable-pwdbased --enable-sessioncerts && \
     make -j "$(nproc)" && \
     make install && \
-    popd
+    popd && \
+    rm -rf /tmp/*
 
 # install gradle
 RUN curl -Ls https://services.gradle.org/distributions/gradle-7.2-bin.zip -o gradle.zip && \
