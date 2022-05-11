@@ -35,6 +35,7 @@ RUN rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org && \
         iptables \
         java-11-openjdk-devel \
         libcurl-devel \
+        libtool \
         libuuid-devel \
         libxslt \
         mono-devel \
@@ -254,6 +255,32 @@ RUN source /opt/rh/devtoolset-8/enable && \
     ./ssl/ssl_test && \
     mkdir -p /opt/boringssl/lib && \
     cp crypto/libcrypto.a ssl/libssl.a /opt/boringssl/lib/
+
+# build/install wolfssl
+RUN source /opt/rh/devtoolset-8/enable && \
+    mkdir wolfssl && \
+    pushd  wolfssl && \
+    git init && \
+    git remote add origin https://github.com/wolfSSL/wolfssl.git && \
+    # e1829e6: Add wolfSSL_EVP_PKEY_paramgen to the compatibility layer. \
+    git fetch --depth 1 origin e1829e614d35ad2dd1d6cc06d493158f16cca505 && \
+    git checkout FETCH_HEAD && \
+    # add new macro \
+    sed -i "$(grep -nE '^#define ASN1_IA5STRING.*' wolfssl/openssl/ssl.h | awk -F':' '{ print $1 }' | head -n1) i #define ASN1_IA5STRING_new              wolfSSL_ASN1_STRING_new" wolfssl/openssl/ssl.h && \
+    # fix naming collision \
+    sed -i 's/internal_error/wolfssl_internal_error/g' src/internal.c src/ssl.c wolfssl/ssl.h && \
+    # fix to allow our version of autoconf \
+    sed -i 's/1\.14\.1/1.13.4/g' configure.ac && \
+    ./autogen.sh && \
+    ./configure CFLAGS="-O3 -fPIC" --prefix=/opt/wolfSSL --enable-aesni \
+     --enable-aesgcm  --enable-aesctr  --enable-intelasm \
+     --enable-sp --enable-sp-asm --enable-sp-math-all \
+     --enable-opensslextra --enable-opensslall --enable-asio \
+     --enable-static  --enable-pwdbased --enable-sessioncerts && \
+    make -j "$(nproc)" && \
+    make install && \
+    popd && \
+    rm -rf /tmp/*
 
 # install gradle
 RUN curl -Ls https://services.gradle.org/distributions/gradle-7.2-bin.zip -o gradle.zip && \

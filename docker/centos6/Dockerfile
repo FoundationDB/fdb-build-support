@@ -32,6 +32,7 @@ RUN sed -i -e '/enabled/d' /etc/yum.repos.d/CentOS-Base.repo && \
         iptables \
         java-1.8.0-openjdk-devel \
         libcurl-devel \
+        libtool \
         libuuid-devel \
         libxslt \
         mono-devel \
