@@ -22,7 +22,7 @@ RUN apt update && apt install -y \
 
 # Compiling and packaging
 ARG SOURCE=https://github.com/apple/foundationdb
-ARG VERSION=7.1.7
+ARG VERSION=master
 FROM build as compile
 RUN git clone ${SOURCE} && \
     cd foundationdb && \
