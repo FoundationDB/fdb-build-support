@@ -21,9 +21,9 @@ RUN apt update && apt install -y \
 
 
 # Compiling and packaging
+ARG SOURCE=https://github.com/apple/foundationdb
+ARG VERSION=7.1.7
 FROM build as compile
-ENV SOURCE=https://github.com/rbarabas/foundationdb
-ENV VERSION=rb/7.1.7_arm64
 RUN git clone ${SOURCE} && \
     cd foundationdb && \
     git checkout ${VERSION} && \
