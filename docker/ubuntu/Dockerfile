@@ -35,7 +35,7 @@ RUN cpack -G DEB
 
 
 # Release container
-FROM --platform=linux/arm64/v8 ubuntu:latest as release
+FROM ubuntu:latest as release
 COPY --from=compile /build/packages/foundationdb-clients*.deb .
 COPY --from=compile /build/packages/foundationdb-server*.deb .
 RUN mkdir /var/lib/foundationdb
