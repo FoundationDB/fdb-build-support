@@ -215,15 +215,15 @@ RUN source /opt/rh/devtoolset-8/enable && \
     cd .. && \
     rm -rf /tmp/*
 
-# install golang 1.17
+# install golang 1.18
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
         GOLANG_ARCH="arm64"; \
-        GOLANG_SHA256="a5aa1ed17d45ee1d58b4a4099b12f8942acbd1dd09b2e9a6abb1c4898043c5f5"; \
+        GOLANG_SHA256="beacbe1441bee4d7978b900136d1d6a71d150f0a9bb77e9d50c822065623a35a"; \
     else \
         GOLANG_ARCH="amd64"; \
-        GOLANG_SHA256="02b111284bedbfa35a7e5b74a06082d18632eff824fd144312f6063943d49259"; \
+        GOLANG_SHA256="956f8507b302ab0bb747613695cdae10af99bbd39a90cae522b7c0302cc27245"; \
     fi && \
-    curl -Ls https://golang.org/dl/go1.17.7.linux-${GOLANG_ARCH}.tar.gz -o golang.tar.gz && \
+    curl -Ls https://go.dev/dl/go1.18.3.linux-${GOLANG_ARCH}.tar.gz -o golang.tar.gz && \
     echo "${GOLANG_SHA256}  golang.tar.gz" > golang-sha.txt && \
     sha256sum --quiet -c golang-sha.txt && \
     tar --directory /usr/local -xf golang.tar.gz && \
