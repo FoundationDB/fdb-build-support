@@ -229,9 +229,6 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     tar --directory /usr/local -xf golang.tar.gz && \
     echo '[ -x /usr/local/go/bin/go ] && export GOROOT=/usr/local/go && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
     source /etc/profile.d/golang.sh && \
-    go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.3 && \
-    go install golang.org/x/tools/cmd/goimports@latest && \
-    go install github.com/segmentio/golines@latest && \
     rm -rf /tmp/*
 
 # build/install boringssl
