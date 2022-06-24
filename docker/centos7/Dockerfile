@@ -442,7 +442,7 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     rm -rf /tmp/*
 
 # build/install Intel Compiler(ICX/ICPX)
-RUN wget --progress=bar:force https://registrationcenter-download.intel.com/akdlm/irc_nas/18679/l_HPCKit_p_2022.2.0.191_offline.sh && \
+RUN curl -LsO https://registrationcenter-download.intel.com/akdlm/irc_nas/18679/l_HPCKit_p_2022.2.0.191_offline.sh && \
     sh ./l_HPCKit_p_2022.2.0.191_offline.sh -a -s --eula accept && \
     rm l_HPCKit_p_2022.2.0.191_offline.sh
 
