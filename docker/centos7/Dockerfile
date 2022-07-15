@@ -481,8 +481,8 @@ RUN source /opt/rh/devtoolset-8/enable && \
     git clone https://github.com/FoundationDB/fdb-joshua . && \
     pip3 install /tmp/fdb-joshua && \
     cd /tmp && \
-    curl -Ls https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/kubectl -o kubectl && \
-    echo "08ff68159bbcb844455167abb1d0de75bbfe5ae1b051f81ab060a1988027868a  kubectl" > kubectl.txt && \
+    curl -Ls https://s3.us-west-2.amazonaws.com/amazon-eks/1.22.6/2022-03-09/bin/linux/amd64/kubectl -o kubectl && \
+    echo "860c3d37a5979491895767e7332404d28dc0d7797c7673c33df30ca80e215a07  kubectl" > kubectl.txt && \
     sha256sum --quiet -c kubectl.txt && \
     chmod 755 kubectl && \
     mv kubectl /usr/local/bin/kubectl && \
