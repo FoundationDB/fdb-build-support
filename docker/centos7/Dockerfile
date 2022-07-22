@@ -438,6 +438,11 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     ./rustup-init -y --no-modify-path --profile minimal --default-toolchain ${RUST_VERSION} --default-host ${RUST_ARCH} && \
     rm -rf /tmp/*
 
+# build/install Intel Compiler(ICX/ICPX)
+RUN curl -LsO https://registrationcenter-download.intel.com/akdlm/irc_nas/18679/l_HPCKit_p_2022.2.0.191_offline.sh && \
+    sh ./l_HPCKit_p_2022.2.0.191_offline.sh -a -s --eula accept && \
+    rm l_HPCKit_p_2022.2.0.191_offline.sh
+
 # =========================== END OF LAYER: build ==============================
 FROM build as devel
 
