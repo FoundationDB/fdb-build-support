@@ -15,6 +15,7 @@ RUN rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org && \
     yum install -y \
         autoconf \
         automake \
+        bin-utils \
         binutils-devel \
         curl \
         debbuild \
@@ -27,30 +28,46 @@ RUN rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org && \
         dos2unix \
         dpkg \
         gettext-devel \
-        ghostscript \
         gperftools \
         gperftools-devel \
         gperftools-libs \
+        ghostscript \
+        glibc-static \
         gv \
         iptables \
         java-11-openjdk-devel \
+        libbsd-devel \
         libcurl-devel \
+        libedit \
+        libedit-devel \
+        libicu-devel \
         libtool \
         libuuid-devel \
+        libxml2-devel \
         libxslt \
         mono-devel \
+        pkg-config \
+        python2 \
         redhat-lsb-core \
         rh-python38 \
         rh-python38-python-devel \
         rh-ruby27 \
         rpm-build \
+        shadow-utils \
+        sqlite \
         tcl-devel \
         unzip \
         vim-enhanced \
-        wget && \
+        wget \
+        zlib-devel \
+        && \
     rm -f /etc/yum.repos.d/mono-centos7-stable.repo && \
     yum clean all && \
     rm -rf /var/cache/yum
+
+# TODO: Is this really necessary?!? -- from swift's dockerfile
+RUN sed -i -e 's/\*__block/\*__libc_block/g' /usr/include/unistd.h
+
 
 # install docker 19
 ENV DOCKER_BUCKET="download.docker.com" \
@@ -437,6 +454,40 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     chmod +x rustup-init && \
     ./rustup-init -y --no-modify-path --profile minimal --default-toolchain ${RUST_VERSION} --default-host ${RUST_ARCH} && \
     rm -rf /tmp/*
+
+# Download swift binaries
+ARG SWIFT_SIGNING_KEY=8A7495662C3CD4AE18D95637FAF6989E1BC16FEA
+ARG SWIFT_PLATFORM=centos
+ARG OS_MAJOR_VER=7
+ARG SWIFT_WEBROOT=https://download.swift.org/development
+
+ENV SWIFT_SIGNING_KEY=$SWIFT_SIGNING_KEY \
+    SWIFT_PLATFORM=$SWIFT_PLATFORM \
+    OS_MAJOR_VER=$OS_MAJOR_VER \
+    OS_VER=$SWIFT_PLATFORM$OS_MAJOR_VER \
+    SWIFT_WEBROOT="$SWIFT_WEBROOT/$SWIFT_PLATFORM$OS_MAJOR_VER"
+
+RUN echo "${SWIFT_WEBROOT}/latest-build.yml"
+
+RUN set -e; \
+    # - Latest Toolchain info
+    export $(curl -s ${SWIFT_WEBROOT}/latest-build.yml | grep 'download:' | sed 's/:[^:\/\/]/=/g')  \
+    && export $(curl -s ${SWIFT_WEBROOT}/latest-build.yml | grep 'download_signature:' | sed 's/:[^:\/\/]/=/g')  \
+    && export DOWNLOAD_DIR=$(echo $download | sed "s/-${OS_VER}.tar.gz//g") \
+    && echo $DOWNLOAD_DIR > .swift_tag \
+    # - Download the GPG keys, Swift toolchain, and toolchain signature, and verify.
+    && export GNUPGHOME="$(mktemp -d)" \
+    && curl -fL ${SWIFT_WEBROOT}/${DOWNLOAD_DIR}/${download} -o latest_toolchain.tar.gz \
+    ${SWIFT_WEBROOT}/${DOWNLOAD_DIR}/${download_signature} -o latest_toolchain.tar.gz.sig \
+    && curl -fL https://swift.org/keys/all-keys.asc | gpg --import -  \
+    && gpg --batch --verify latest_toolchain.tar.gz.sig latest_toolchain.tar.gz \
+    # - Unpack the toolchain, set libs permissions, and clean up.
+    && tar -xzf latest_toolchain.tar.gz --directory / --strip-components=1 \
+    && chmod -R o+r /usr/lib/swift \
+    && rm -rf "$GNUPGHOME" latest_toolchain.tar.gz.sig latest_toolchain.tar.gz
+
+# Print Installed Swift Version
+RUN swift --version
 
 # =========================== END OF LAYER: build ==============================
 FROM build as devel
