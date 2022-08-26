@@ -523,6 +523,7 @@ WORKDIR /tmp
 RUN source /opt/rh/devtoolset-8/enable && \
     source /opt/rh/rh-python38/enable && \
     pip3 install \
+        boto3 \
         lxml \
         psutil \
         python-dateutil \
