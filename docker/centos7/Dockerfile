@@ -297,11 +297,11 @@ RUN source /opt/rh/devtoolset-8/enable && \
     rm -rf /tmp/*
 
 # install gradle
-RUN curl -Ls https://services.gradle.org/distributions/gradle-7.2-bin.zip -o gradle.zip && \
-    echo "f581709a9c35e9cb92e16f585d2c4bc99b2b1a5f85d2badbd3dc6bff59e1e6dd  gradle.zip" > gradle-sha.txt && \
+RUN curl -Ls https://services.gradle.org/distributions/gradle-7.5.1-bin.zip -o gradle.zip && \
+    echo "f6b8596b10cce501591e92f229816aa4046424f3b24d771751b06779d58c8ec4  gradle.zip" > gradle-sha.txt && \
     sha256sum --quiet -c gradle-sha.txt && \
     unzip -qq gradle.zip && \
-    mv gradle-7.2 /opt/gradle && \
+    mv gradle-7.5.1 /opt/gradle && \
     echo '[ -x /opt/gradle/bin/gradle ] && export PATH=/opt/gradle/bin/:$PATH' >> /etc/profile.d/gradle.sh && \
     rm -rf /tmp/*
 
@@ -538,16 +538,16 @@ RUN source /opt/rh/devtoolset-8/enable && \
     sha256sum --quiet -c kubectl.txt && \
     chmod 755 kubectl && \
     mv kubectl /usr/local/bin/kubectl && \
-    curl -Ls https://github.com/derailed/k9s/releases/download/v0.25.18/k9s_Linux_x86_64.tar.gz -o k9s.tar.gz && \
-    echo "d288aacc368ab6b243fc9e7ecd17b53fa34a813509c2dc3023171085db83cf9d  k9s.tar.gz" > k9s-sha.txt && \
+    curl -Ls https://github.com/derailed/k9s/releases/download/v0.26.5/k9s_Linux_x86_64.tar.gz -o k9s.tar.gz && \
+    echo "8ae556d05b4744f7b79cc71549e4096daa9c6b913be88ee43be42ef800137bc3  k9s.tar.gz" > k9s-sha.txt && \
     sha256sum --quiet -c k9s-sha.txt && \
     tar --no-same-owner --no-same-permissions --directory /usr/local/bin -xzf k9s.tar.gz k9s && \
     if [ "$(uname -m)" == "aarch64" ]; then \
-        AWSCLI_SHA256="40ccb45036e62c0351b307ed0e68f72defa1365e16c2758eb141cd424295ecb3"; \
+        AWSCLI_SHA256="bcb195622f0956c8569736b95bff9cff7f5684e400e694a33661f2d498fbc799"; \
     else \
-        AWSCLI_SHA256="9a8b3c4e7f72bbcc55e341dce3af42479f2730c225d6d265ee6f9162cfdebdfd"; \
+        AWSCLI_SHA256="daf9253f0071b5cfee9532bc5220bedd7a5d29d4e0f92b42b9e3e4c496341e88"; \
     fi && \
-    curl -Ls https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m)-2.2.43.zip -o "awscliv2.zip" && \
+    curl -Ls https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m)-2.7.34.zip -o "awscliv2.zip" && \
     echo "${AWSCLI_SHA256}  awscliv2.zip" > awscliv2.txt && \
     sha256sum --quiet -c awscliv2.txt && \
     unzip -qq awscliv2.zip && \
