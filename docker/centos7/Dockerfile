@@ -121,6 +121,7 @@ RUN source /opt/rh/devtoolset-8/enable && \
     source /opt/rh/rh-ruby27/enable && \
     curl -Ls https://github.com/axboe/liburing/archive/refs/tags/liburing-2.1.tar.gz -o liburing.tar.gz && \
     echo "f1e0500cb3934b0b61c5020c3999a973c9c93b618faff1eba75aadc95bb03e07  liburing.tar.gz" > liburing-sha.txt && \
+    sha256sum --quiet -c liburing-sha.txt && \
     mkdir liburing && \
     tar --strip-components 1 --no-same-owner --directory liburing -xf liburing.tar.gz && \
     cd liburing && \
