@@ -527,7 +527,8 @@ RUN source /opt/rh/devtoolset-8/enable && \
         lxml \
         psutil \
         python-dateutil \
-        subprocess32 && \
+        subprocess32 \
+        toml && \
     mkdir fdb-joshua && \
     cd fdb-joshua && \
     git clone https://github.com/FoundationDB/fdb-joshua . && \
