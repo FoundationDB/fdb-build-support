@@ -149,11 +149,11 @@ RUN source /opt/rh/devtoolset-8/enable && \
 
 # install cmake
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
-        CMAKE_SHA256="5f1c0d49bac89915b5c68811c2430e5de6c8e606785b9f2919eabee86c2f12b4"; \
+        CMAKE_SHA256="92bf12263420741481abe575ed66fa1b15c4fabebcf8862e9057389936e14561"; \
     else \
-        CMAKE_SHA256="71a776b6a08135092b5beb00a603b60ca39f8231c01a0356e205e0b4631747d9"; \
+        CMAKE_SHA256="cb40dbf6aff73da8019782040a44c88aecb946e871fb5e73317dc83081c61439"; \
     fi && \
-    curl -Ls https://github.com/Kitware/CMake/releases/download/v3.24.2/cmake-3.24.2-$(uname -s)-$(uname -m).tar.gz -o cmake.tar.gz && \
+    curl -Ls https://github.com/Kitware/CMake/releases/download/v3.25.0-rc2/cmake-3.25.0-rc2-$(uname -s)-$(uname -m).tar.gz -o cmake.tar.gz && \
     echo "${CMAKE_SHA256}  cmake.tar.gz" > cmake-sha.txt && \
     sha256sum --quiet -c cmake-sha.txt && \
     mkdir cmake && \
