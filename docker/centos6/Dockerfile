@@ -199,15 +199,15 @@ RUN source /opt/rh/devtoolset-8/enable && \
     cd .. && \
     rm -rf /tmp/*
 
-# install golang 1.17
+# install golang 1.19
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
         GOLANG_ARCH="arm64"; \
-        GOLANG_SHA256="a5aa1ed17d45ee1d58b4a4099b12f8942acbd1dd09b2e9a6abb1c4898043c5f5"; \
+        GOLANG_SHA256="99de2fe112a52ab748fb175edea64b313a0c8d51d6157dba683a6be163fd5eab"; \
     else \
         GOLANG_ARCH="amd64"; \
-        GOLANG_SHA256="02b111284bedbfa35a7e5b74a06082d18632eff824fd144312f6063943d49259"; \
+        GOLANG_SHA256="74b9640724fd4e6bb0ed2a1bc44ae813a03f1e72a4c76253e2d5c015494430ba"; \
     fi && \
-    curl -Ls https://golang.org/dl/go1.17.7.linux-${GOLANG_ARCH}.tar.gz -o golang.tar.gz && \
+    curl -Ls https://golang.org/dl/go1.19.3.linux-${GOLANG_ARCH}.tar.gz -o golang.tar.gz && \
     echo "${GOLANG_SHA256}  golang.tar.gz" > golang-sha.txt && \
     sha256sum --quiet -c golang-sha.txt && \
     tar --directory /usr/local -xf golang.tar.gz && \
@@ -216,6 +216,10 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.3 && \
     go install golang.org/x/tools/cmd/goimports@latest && \
     go install github.com/segmentio/golines@latest && \
+    go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.9.2 && \
+    go install sigs.k8s.io/kustomize/kustomize/v4@v4.5.2 && \
+    go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50.1 && \
+    go install github.com/goreleaser/goreleaser@v1.6.3 && \
     rm -rf /tmp/*
 
 # build/install boringssl
