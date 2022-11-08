@@ -233,20 +233,27 @@ RUN source /opt/rh/devtoolset-8/enable && \
     cd .. && \
     rm -rf /tmp/*
 
-# install golang 1.18
+# install golang 1.19
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
         GOLANG_ARCH="arm64"; \
-        GOLANG_SHA256="beacbe1441bee4d7978b900136d1d6a71d150f0a9bb77e9d50c822065623a35a"; \
+        GOLANG_SHA256="99de2fe112a52ab748fb175edea64b313a0c8d51d6157dba683a6be163fd5eab"; \
     else \
         GOLANG_ARCH="amd64"; \
-        GOLANG_SHA256="956f8507b302ab0bb747613695cdae10af99bbd39a90cae522b7c0302cc27245"; \
+        GOLANG_SHA256="74b9640724fd4e6bb0ed2a1bc44ae813a03f1e72a4c76253e2d5c015494430ba"; \
     fi && \
-    curl -Ls https://go.dev/dl/go1.18.3.linux-${GOLANG_ARCH}.tar.gz -o golang.tar.gz && \
+    curl -Ls https://golang.org/dl/go1.19.3.linux-${GOLANG_ARCH}.tar.gz -o golang.tar.gz && \
     echo "${GOLANG_SHA256}  golang.tar.gz" > golang-sha.txt && \
     sha256sum --quiet -c golang-sha.txt && \
     tar --directory /usr/local -xf golang.tar.gz && \
     echo '[ -x /usr/local/go/bin/go ] && export GOROOT=/usr/local/go && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
     source /etc/profile.d/golang.sh && \
+    go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.3 && \
+    go install golang.org/x/tools/cmd/goimports@latest && \
+    go install github.com/segmentio/golines@latest && \
+    go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.9.2 && \
+    go install sigs.k8s.io/kustomize/kustomize/v4@v4.5.2 && \
+    go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50.1 && \
+    go install github.com/goreleaser/goreleaser@v1.6.3 && \
     rm -rf /tmp/*
 
 # build/install boringssl
