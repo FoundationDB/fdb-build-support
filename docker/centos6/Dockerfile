@@ -448,6 +448,9 @@ RUN mkdir -p /usr/lib/foundationdb/plugins && \
     curl -Ls https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/libfdb_c.x86_64.so -o /usr/lib64/libfdb_c_${FDB_VERSION}.so && \
     ln -sf /usr/lib64/libfdb_c_${FDB_VERSION}.so /usr/lib64/libfdb_c.so
 
+# Install header files for compling the operator
+RUN rpm -ivh https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/foundationdb-clients-${FDB_VERSION}-1.el7.x86_64.rpm --excludepath=/etc/foundationdb --excludepath=/usr/bin --excludepath=/usr/lib --excludepath=/usr/lib64
+
 WORKDIR /root
 RUN rm -f /root/anaconda-ks.cfg && \
     printf '%s\n' \
