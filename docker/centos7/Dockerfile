@@ -1,9 +1,12 @@
 FROM centos:7 as build
 
 WORKDIR /tmp
-RUN rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org && \
-    yum -y install https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm && \
-    yum -y --enablerepo=elrepo-kernel install kernel-lt{,-devel,-headers} \ && \
+# skip installing elrepo-kernel on aarch64
+RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
+        rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org && \
+        yum -y install https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm && \
+        yum -y --enablerepo=elrepo-kernel install kernel-lt{,-devel,-headers}; \
+    fi && \
     rpm --import https://download.mono-project.com/repo/xamarin.gpg && \
     curl -Ls https://download.mono-project.com/repo/centos7-stable.repo | tee /etc/yum.repos.d/mono-centos7-stable.repo && \
     yum repolist && \
@@ -278,31 +281,33 @@ RUN source /opt/rh/devtoolset-8/enable && \
     mkdir -p /opt/boringssl/lib && \
     cp crypto/libcrypto.a ssl/libssl.a /opt/boringssl/lib/
 
-# build/install wolfssl
-RUN source /opt/rh/devtoolset-8/enable && \
-    mkdir wolfssl && \
-    pushd  wolfssl && \
-    git init && \
-    git remote add origin https://github.com/wolfSSL/wolfssl.git && \
-    # e1829e6: Add wolfSSL_EVP_PKEY_paramgen to the compatibility layer. \
-    git fetch --depth 1 origin e1829e614d35ad2dd1d6cc06d493158f16cca505 && \
-    git checkout FETCH_HEAD && \
-    # add new macro \
-    sed -i "$(grep -nE '^#define ASN1_IA5STRING.*' wolfssl/openssl/ssl.h | awk -F':' '{ print $1 }' | head -n1) i #define ASN1_IA5STRING_new              wolfSSL_ASN1_STRING_new" wolfssl/openssl/ssl.h && \
-    # fix naming collision \
-    sed -i 's/internal_error/wolfssl_internal_error/g' src/internal.c src/ssl.c wolfssl/ssl.h && \
-    # fix to allow our version of autoconf \
-    sed -i 's/1\.14\.1/1.13.4/g' configure.ac && \
-    ./autogen.sh && \
-    ./configure CFLAGS="-O3 -fPIC" --prefix=/opt/wolfSSL --enable-aesni \
-     --enable-aesgcm  --enable-aesctr  --enable-intelasm \
-     --enable-sp --enable-sp-asm --enable-sp-math-all \
-     --enable-opensslextra --enable-opensslall --enable-asio \
-     --enable-static  --enable-pwdbased --enable-sessioncerts && \
-    make -j "$(nproc)" && \
-    make install && \
-    popd && \
-    rm -rf /tmp/*
+# build/install wolfssl if not on aarch64
+RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
+        source /opt/rh/devtoolset-8/enable && \
+        mkdir wolfssl && \
+        pushd  wolfssl && \
+        git init && \
+        git remote add origin https://github.com/wolfSSL/wolfssl.git && \
+        # e1829e6: Add wolfSSL_EVP_PKEY_paramgen to the compatibility layer. \
+        git fetch --depth 1 origin e1829e614d35ad2dd1d6cc06d493158f16cca505 && \
+        git checkout FETCH_HEAD && \
+        # add new macro \
+        sed -i "$(grep -nE '^#define ASN1_IA5STRING.*' wolfssl/openssl/ssl.h | awk -F':' '{ print $1 }' | head -n1) i #define ASN1_IA5STRING_new              wolfSSL_ASN1_STRING_new" wolfssl/openssl/ssl.h && \
+        # fix naming collision \
+        sed -i 's/internal_error/wolfssl_internal_error/g' src/internal.c src/ssl.c wolfssl/ssl.h && \
+        # fix to allow our version of autoconf \
+        sed -i 's/1\.14\.1/1.13.4/g' configure.ac && \
+        ./autogen.sh && \
+        ./configure CFLAGS="-O3 -fPIC" --prefix=/opt/wolfSSL --enable-aesni \
+         --enable-aesgcm  --enable-aesctr  --enable-intelasm \
+         --enable-sp --enable-sp-asm --enable-sp-math-all \
+         --enable-opensslextra --enable-opensslall --enable-asio \
+         --enable-static  --enable-pwdbased --enable-sessioncerts && \
+        make -j "$(nproc)" && \
+        make install && \
+        popd && \
+        rm -rf /tmp/*; \
+    fi
 
 # install gradle
 RUN curl -Ls https://services.gradle.org/distributions/gradle-7.5.1-bin.zip -o gradle.zip && \
@@ -431,18 +436,20 @@ RUN source /opt/rh/devtoolset-8/enable && \
     cd .. && \
     rm -rf /tmp/*
 
-# download old fdb binaries and client lib
-RUN for old_fdb_version in 7.1.23 7.1.19 7.0.0 6.3.23 6.3.22 6.3.18 6.3.17 6.3.16 6.3.15 6.3.13 6.3.12 6.3.9 6.2.30 6.2.29 6.2.28 6.2.27 6.2.26 6.2.25 6.2.24 6.2.23 6.2.22 6.2.21 6.2.20 6.2.19 6.2.18 6.2.17 6.2.16 6.2.15 6.2.10 6.1.13 6.1.12 6.1.11 6.1.10 6.0.18 6.0.17 6.0.16 6.0.15 6.0.14 5.2.8 5.2.7 5.1.7 5.1.6; do \
-        mkdir -p /opt/foundationdb/old/${old_fdb_version}/bin; \
-        curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/fdbserver.x86_64 -o /opt/foundationdb/old/${old_fdb_version}/bin/fdbserver-${old_fdb_version}; \
-        chmod +x /opt/foundationdb/old/${old_fdb_version}/bin/fdbserver-${old_fdb_version}; \
-        curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/fdbmonitor.x86_64 -o /opt/foundationdb/old/${old_fdb_version}/bin/fdbmonitor-${old_fdb_version}; \
-        chmod +x /opt/foundationdb/old/${old_fdb_version}/bin/fdbmonitor-${old_fdb_version}; \
-        curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/fdbcli.x86_64 -o /opt/foundationdb/old/${old_fdb_version}/bin/fdbcli-${old_fdb_version}; \
-        chmod +x /opt/foundationdb/old/${old_fdb_version}/bin/fdbcli-${old_fdb_version}; \
-        mkdir -p /opt/foundationdb/old/${old_fdb_version}/lib; \
-        curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/libfdb_c.x86_64.so -o /opt/foundationdb/old/${old_fdb_version}/lib/libfdb_c-${old_fdb_version}.so; \
-    done
+# download old fdb binaries and client lib if not on aarch64
+RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
+        for old_fdb_version in 7.1.23 7.1.19 7.0.0 6.3.23 6.3.22 6.3.18 6.3.17 6.3.16 6.3.15 6.3.13 6.3.12 6.3.9 6.2.30 6.2.29 6.2.28 6.2.27 6.2.26 6.2.25 6.2.24 6.2.23 6.2.22 6.2.21 6.2.20 6.2.19 6.2.18 6.2.17 6.2.16 6.2.15 6.2.10 6.1.13 6.1.12 6.1.11 6.1.10 6.0.18 6.0.17 6.0.16 6.0.15 6.0.14 5.2.8 5.2.7 5.1.7 5.1.6; do \
+            mkdir -p /opt/foundationdb/old/${old_fdb_version}/bin; \
+            curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/fdbserver.x86_64 -o /opt/foundationdb/old/${old_fdb_version}/bin/fdbserver-${old_fdb_version}; \
+            chmod +x /opt/foundationdb/old/${old_fdb_version}/bin/fdbserver-${old_fdb_version}; \
+            curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/fdbmonitor.x86_64 -o /opt/foundationdb/old/${old_fdb_version}/bin/fdbmonitor-${old_fdb_version}; \
+            chmod +x /opt/foundationdb/old/${old_fdb_version}/bin/fdbmonitor-${old_fdb_version}; \
+            curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/fdbcli.x86_64 -o /opt/foundationdb/old/${old_fdb_version}/bin/fdbcli-${old_fdb_version}; \
+            chmod +x /opt/foundationdb/old/${old_fdb_version}/bin/fdbcli-${old_fdb_version}; \
+            mkdir -p /opt/foundationdb/old/${old_fdb_version}/lib; \
+            curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/libfdb_c.x86_64.so -o /opt/foundationdb/old/${old_fdb_version}/lib/libfdb_c-${old_fdb_version}.so; \
+        done; \
+    fi
 
 RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/misc/junit/ctest2junit.xsl -o /opt/ctest2junit.xsl
 
@@ -477,25 +484,32 @@ ENV SWIFT_SIGNING_KEY=$SWIFT_SIGNING_KEY \
 
 RUN echo "${SWIFT_WEBROOT}/latest-build.yml"
 
-RUN set -e; \
-    # - Latest Toolchain info
-    export $(curl -s ${SWIFT_WEBROOT}/latest-build.yml | grep 'download:' | sed 's/:[^:\/\/]/=/g')  \
-    && export $(curl -s ${SWIFT_WEBROOT}/latest-build.yml | grep 'download_signature:' | sed 's/:[^:\/\/]/=/g')  \
-    && export DOWNLOAD_DIR=$(echo $download | sed "s/-${OS_VER}.tar.gz//g") \
-    && echo $DOWNLOAD_DIR > .swift_tag \
-    # - Download the GPG keys, Swift toolchain, and toolchain signature, and verify.
-    && export GNUPGHOME="$(mktemp -d)" \
-    && curl -fL ${SWIFT_WEBROOT}/${DOWNLOAD_DIR}/${download} -o latest_toolchain.tar.gz \
-    ${SWIFT_WEBROOT}/${DOWNLOAD_DIR}/${download_signature} -o latest_toolchain.tar.gz.sig \
-    && curl -fL https://swift.org/keys/all-keys.asc | gpg --import -  \
-    && gpg --batch --verify latest_toolchain.tar.gz.sig latest_toolchain.tar.gz \
-    # - Unpack the toolchain, set libs permissions, and clean up.
-    && tar -xzf latest_toolchain.tar.gz --directory / --strip-components=1 \
-    && chmod -R o+r /usr/lib/swift \
-    && rm -rf "$GNUPGHOME" latest_toolchain.tar.gz.sig latest_toolchain.tar.gz
+# download old fdb binaries and client lib if not on aarch64
+# aarch64 package is not available for CentOS7
+# https://www.swift.org/download/
+RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
+        set -e; \
+        # - Latest Toolchain info
+        export $(curl -s ${SWIFT_WEBROOT}/latest-build.yml | grep 'download:' | sed 's/:[^:\/\/]/=/g')  \
+        && export $(curl -s ${SWIFT_WEBROOT}/latest-build.yml | grep 'download_signature:' | sed 's/:[^:\/\/]/=/g')  \
+        && export DOWNLOAD_DIR=$(echo $download | sed "s/-${OS_VER}.tar.gz//g") \
+        && echo $DOWNLOAD_DIR > .swift_tag \
+        # - Download the GPG keys, Swift toolchain, and toolchain signature, and verify.
+        && export GNUPGHOME="$(mktemp -d)" \
+        && curl -fL ${SWIFT_WEBROOT}/${DOWNLOAD_DIR}/${download} -o latest_toolchain.tar.gz \
+        ${SWIFT_WEBROOT}/${DOWNLOAD_DIR}/${download_signature} -o latest_toolchain.tar.gz.sig \
+        && curl -fL https://swift.org/keys/all-keys.asc | gpg --import -  \
+        && gpg --batch --verify latest_toolchain.tar.gz.sig latest_toolchain.tar.gz \
+        # - Unpack the toolchain, set libs permissions, and clean up.
+        && tar -xzf latest_toolchain.tar.gz --directory / --strip-components=1 \
+        && chmod -R o+r /usr/lib/swift \
+        && rm -rf "$GNUPGHOME" latest_toolchain.tar.gz.sig latest_toolchain.tar.gz; \
+    fi
 
 # Print Installed Swift Version
-RUN swift --version
+RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
+        swift --version; \
+    fi
 
 # =========================== END OF LAYER: build ==============================
 FROM build as devel
@@ -542,13 +556,25 @@ RUN source /opt/rh/devtoolset-8/enable && \
     git clone https://github.com/FoundationDB/fdb-joshua . && \
     pip3 install /tmp/fdb-joshua && \
     cd /tmp && \
-    curl -Ls https://s3.us-west-2.amazonaws.com/amazon-eks/1.22.6/2022-03-09/bin/linux/amd64/kubectl -o kubectl && \
-    echo "860c3d37a5979491895767e7332404d28dc0d7797c7673c33df30ca80e215a07  kubectl" > kubectl.txt && \
+    # - Download kubectl from AWS
+    #   https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html
+    if [ "$(uname -m)" == "aarch64" ]; then \
+        curl -Ls https://s3.us-west-2.amazonaws.com/amazon-eks/1.22.6/2022-03-09/bin/linux/arm64/kubectl -o kubectl && \
+        curl -Ls https://s3.us-west-2.amazonaws.com/amazon-eks/1.22.6/2022-03-09/bin/linux/arm64/kubectl.sha256 -o kubectl.txt; \
+    else \
+        curl -Ls https://s3.us-west-2.amazonaws.com/amazon-eks/1.22.6/2022-03-09/bin/linux/amd64/kubectl -o kubectl && \
+        curl -Ls https://s3.us-west-2.amazonaws.com/amazon-eks/1.22.6/2022-03-09/bin/linux/amd64/kubectl.sha256 -o kubectl.txt; \
+    fi && \
     sha256sum --quiet -c kubectl.txt && \
     chmod 755 kubectl && \
     mv kubectl /usr/local/bin/kubectl && \
-    curl -Ls https://github.com/derailed/k9s/releases/download/v0.26.5/k9s_Linux_x86_64.tar.gz -o k9s.tar.gz && \
-    echo "8ae556d05b4744f7b79cc71549e4096daa9c6b913be88ee43be42ef800137bc3  k9s.tar.gz" > k9s-sha.txt && \
+    if [ "$(uname -m)" == "aarch64" ]; then \
+        curl -Ls https://github.com/derailed/k9s/releases/download/v0.26.5/k9s_Linux_arm64.tar.gz -o k9s.tar.gz && \
+        echo "62bc8fe98ad035a64bbeede91bdd57de357af3059bd80975a9d22b6b072d97f8  k9s.tar.gz" > k9s-sha.txt; \
+    else \
+        curl -Ls https://github.com/derailed/k9s/releases/download/v0.26.5/k9s_Linux_x86_64.tar.gz -o k9s.tar.gz && \
+        echo "8ae556d05b4744f7b79cc71549e4096daa9c6b913be88ee43be42ef800137bc3  k9s.tar.gz" > k9s-sha.txt; \
+    fi && \
     sha256sum --quiet -c k9s-sha.txt && \
     tar --no-same-owner --no-same-permissions --directory /usr/local/bin -xzf k9s.tar.gz k9s && \
     if [ "$(uname -m)" == "aarch64" ]; then \
@@ -592,15 +618,19 @@ RUN source /opt/rh/devtoolset-8/enable && \
     rm -rf /tmp/*
 
 ARG FDB_VERSION="6.3.18"
-RUN mkdir -p /usr/lib/foundationdb/plugins && \
-    curl -Ls https://fdb-joshua.s3.amazonaws.com/old_tls_library.tgz | \
-        tar --strip-components=1 --no-same-owner --directory /usr/lib/foundationdb/plugins -xz && \
-    ln -sf /usr/lib/foundationdb/plugins/FDBGnuTLS.so /usr/lib/foundationdb/plugins/fdb-libressl-plugin.so && \
-    curl -Ls https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/libfdb_c.x86_64.so -o /usr/lib64/libfdb_c_${FDB_VERSION}.so && \
-    ln -sf /usr/lib64/libfdb_c_${FDB_VERSION}.so /usr/lib64/libfdb_c.so
+RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
+        mkdir -p /usr/lib/foundationdb/plugins && \
+        curl -Ls https://fdb-joshua.s3.amazonaws.com/old_tls_library.tgz | \
+            tar --strip-components=1 --no-same-owner --directory /usr/lib/foundationdb/plugins -xz && \
+        ln -sf /usr/lib/foundationdb/plugins/FDBGnuTLS.so /usr/lib/foundationdb/plugins/fdb-libressl-plugin.so && \
+        curl -Ls https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/libfdb_c.x86_64.so -o /usr/lib64/libfdb_c_${FDB_VERSION}.so && \
+        ln -sf /usr/lib64/libfdb_c_${FDB_VERSION}.so /usr/lib64/libfdb_c.so; \
+    fi
 
 # Install header files for compling the operator
-RUN rpm -ivh https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/foundationdb-clients-${FDB_VERSION}-1.el7.x86_64.rpm --excludepath=/etc/foundationdb --excludepath=/usr/bin --excludepath=/usr/lib --excludepath=/usr/lib64
+RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
+        rpm -ivh https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/foundationdb-clients-${FDB_VERSION}-1.el7.x86_64.rpm --excludepath=/etc/foundationdb --excludepath=/usr/bin --excludepath=/usr/lib --excludepath=/usr/lib64; \
+    fi
 
 WORKDIR /root
 # Pull in rust developer tools -- we use "nightly" for development
