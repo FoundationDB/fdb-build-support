@@ -262,6 +262,7 @@ go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.9.2
 go install sigs.k8s.io/kustomize/kustomize/v4@v4.5.2
 go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50.1
 go install github.com/goreleaser/goreleaser@v1.6.3
+go install sigs.k8s.io/kind@v0.17.0
 
 logg "build/install boringssl"
 source /opt/rh/devtoolset-8/enable
