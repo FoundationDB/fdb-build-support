@@ -328,8 +328,8 @@ RUN curl -Ls https://archive.apache.org/dist/maven/maven-3/3.8.3/binaries/apache
     rm -rf /tmp/*
 
 # install rocksdb to /opt
-RUN curl -Ls https://github.com/facebook/rocksdb/archive/refs/tags/v6.27.3.tar.gz -o rocksdb.tar.gz && \
-    echo "ee29901749b9132692b26f0a6c1d693f47d1a9ed8e3771e60556afe80282bf58  rocksdb.tar.gz" > rocksdb-sha.txt && \
+RUN curl -Ls https://github.com/facebook/rocksdb/archive/refs/tags/v7.7.3.tar.gz -o rocksdb.tar.gz && \
+    echo "b8ac9784a342b2e314c821f6d701148912215666ac5e9bdbccd93cf3767cb611 rocksdb.tar.gz" > rocksdb-sha.txt && \
     sha256sum --quiet -c rocksdb-sha.txt && \
     tar --directory /opt -xf rocksdb.tar.gz && \
     rm -rf /tmp/*
@@ -680,15 +680,15 @@ RUN rm -f /root/anaconda-ks.cfg && \
     'source /opt/rh/rh-ruby27/enable' \
     '' \
     'function cmk_ci() {' \
-    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.27.3 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-7.7.3 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
     '    ninja -v -C ${HOME}/build_output -j 84 all packages strip_targets' \
     '}' \
     'function cmk() {' \
-    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.27.3 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-7.7.3 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
     '    ninja -C ${HOME}/build_output -j 84' \
     '}' \
     'function ccmk() {' \
-    '    CC=clang CXX=clang++ cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-6.27.3 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    CC=clang CXX=clang++ cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-7.7.3 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
     '    ninja -C ${HOME}/build_output -j 84' \
     '}' \
     'function ct() {' \
