@@ -245,14 +245,14 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     rm -rf /tmp/*
 
 # build/install boringssl
-RUN source /opt/rh/devtoolset-8/enable && \
+RUN source /opt/rh/devtoolset-11/enable && \
     source /opt/rh/rh-python38/enable && \
     source /opt/rh/rh-ruby27/enable && \
     source /etc/profile.d/golang.sh && \
     mkdir -p /opt/boringssl && \
     cd /opt/boringssl && \
     git clone https://boringssl.googlesource.com/boringssl . && \
-    git checkout e796cc65025982ed1fb9ef41b3f74e8115092816 && \
+    git checkout 3a1b7306ac18110024f1b716c2aa61f17732e02a && \
     for file in crypto/fipsmodule/rand/fork_detect_test.cc include/openssl/bn.h ssl/test/bssl_shim.cc; do \
         perl -p -i -e 's/#include <inttypes.h>/#define __STDC_FORMAT_MACROS 1\n#include <inttypes.h>/g;' $file; \
     done && \
