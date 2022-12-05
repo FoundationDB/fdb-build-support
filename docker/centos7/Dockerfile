@@ -197,8 +197,27 @@ RUN source /opt/rh/devtoolset-11/enable && \
         -Wno-dev \
         -DLLVM_INCLUDE_EXAMPLES=OFF \
         -DLLVM_INCLUDE_TESTS=OFF \
-        -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld;lldb;compiler-rt;libcxx;libcxxabi;libunwind" \
+        -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld;lldb" \
         -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
+        -DCLANG_DEFAULT_PIE_ON_LINUX=OFF \
+        ../llvm && \
+    cmake --build . && \
+    cmake --build . --target install && \
+    cd .. && \
+    rm -rf build && \
+    mkdir build && \
+    cd build && \
+    cmake \
+        -DCMAKE_BUILD_TYPE=Release \
+        -G Ninja \
+        -Wno-dev \
+        -DLLVM_INCLUDE_EXAMPLES=OFF \
+        -DLLVM_INCLUDE_TESTS=OFF \
+        -DLLVM_ENABLE_PROJECTS="clang;compiler-rt;libcxx;libcxxabi;libunwind" \
+        -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
+        -DCLANG_DEFAULT_PIE_ON_LINUX=OFF \
+        -DCMAKE_C_COMPILER=/usr/local/bin/clang \
+        -DCMAKE_CXX_COMPILER=/usr/local/bin/clang++ \
         ../llvm && \
     cmake --build . && \
     cmake --build . --target install && \
