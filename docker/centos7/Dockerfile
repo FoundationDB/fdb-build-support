@@ -270,7 +270,7 @@ RUN source /opt/rh/devtoolset-11/enable && \
     mkdir -p /opt/boringssl && \
     cd /opt/boringssl && \
     git clone https://boringssl.googlesource.com/boringssl . && \
-    git checkout 3a1b7306ac18110024f1b716c2aa61f17732e02a && \
+    git checkout 7ff871acbe1c58d142f089e228626e6a63ad5fe0 && \
     for file in crypto/fipsmodule/rand/fork_detect_test.cc include/openssl/bn.h ssl/test/bssl_shim.cc; do \
         perl -p -i -e 's/#include <inttypes.h>/#define __STDC_FORMAT_MACROS 1\n#include <inttypes.h>/g;' $file; \
     done && \
