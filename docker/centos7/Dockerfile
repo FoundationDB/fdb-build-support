@@ -22,7 +22,6 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
         binutils-devel \
         curl \
         debbuild \
-        devtoolset-8 \
         devtoolset-11 \
         devtoolset-11-libasan-devel \
         devtoolset-11-libatomic-devel \
