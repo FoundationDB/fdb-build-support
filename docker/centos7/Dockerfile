@@ -1,5 +1,7 @@
 FROM centos:7 as build
 
+ARG DEVTOOLSET_VERSION=11
+
 WORKDIR /tmp
 # skip installing elrepo-kernel on aarch64
 RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
@@ -22,12 +24,12 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
         binutils-devel \
         curl \
         debbuild \
-        devtoolset-11 \
-        devtoolset-11-libasan-devel \
-        devtoolset-11-libatomic-devel \
-        devtoolset-11-libtsan-devel \
-        devtoolset-11-libubsan-devel \
-        devtoolset-11-systemtap-sdt-devel \
+        devtoolset-${DEVTOOLSET_VERSION} \
+        devtoolset-${DEVTOOLSET_VERSION}-libasan-devel \
+        devtoolset-${DEVTOOLSET_VERSION}-libatomic-devel \
+        devtoolset-${DEVTOOLSET_VERSION}-libtsan-devel \
+        devtoolset-${DEVTOOLSET_VERSION}-libubsan-devel \
+        devtoolset-${DEVTOOLSET_VERSION}-systemtap-sdt-devel \
         dos2unix \
         dpkg \
         gettext-devel \
@@ -104,7 +106,7 @@ RUN set -ex \
     && docker-compose version
 
 # build/install lz4
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     source /opt/rh/rh-python38/enable && \
     source /opt/rh/rh-ruby27/enable && \
     curl -Ls https://github.com/lz4/lz4/archive/refs/tags/v1.9.3.tar.gz -o lz4.tar.gz && \
@@ -119,7 +121,7 @@ RUN source /opt/rh/devtoolset-11/enable && \
     rm -rf /tmp/*
 
 # build/install liburing
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     source /opt/rh/rh-python38/enable && \
     source /opt/rh/rh-ruby27/enable && \
     curl -Ls https://github.com/axboe/liburing/archive/refs/tags/liburing-2.1.tar.gz -o liburing.tar.gz && \
@@ -135,7 +137,7 @@ RUN source /opt/rh/devtoolset-11/enable && \
     rm -rf /tmp/*
 
 # build/install git
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     curl -Ls https://github.com/git/git/archive/v2.30.0.tar.gz -o git.tar.gz && \
     echo "8db4edd1a0a74ebf4b78aed3f9e25c8f2a7db3c00b1aaee94d1e9834fae24e61  git.tar.gz" > git-sha.txt && \
     sha256sum --quiet -c git-sha.txt && \
@@ -150,7 +152,7 @@ RUN source /opt/rh/devtoolset-11/enable && \
     rm -rf /tmp/*
 
 # build/install ninja
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     curl -Ls https://github.com/ninja-build/ninja/archive/refs/tags/v1.10.2.zip -o ninja.zip && \
     echo "4e7b67da70a84084d5147a97fcfb867660eff55cc60a95006c389c4ca311b77d  ninja.zip" > ninja-sha.txt && \
     sha256sum --quiet -c ninja-sha.txt && \
@@ -180,7 +182,7 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
 #     ref: https://libcxx.llvm.org/#platform-and-compiler-support)
 # so build and install clang first, then build other components and with clang
 # build clang a second time to pass component check
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     source /opt/rh/rh-python38/enable && \
     curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-15.0.6/llvm-project-15.0.6.src.tar.xz -o llvm.tar.xz && \
     echo "9d53ad04dc60cb7b30e810faf64c5ab8157dadef46c8766f67f286238256ff92  llvm.tar.xz" > llvm-sha.txt && \
@@ -224,7 +226,7 @@ RUN source /opt/rh/devtoolset-11/enable && \
     rm -rf /tmp/*
 
 # build/install openssl
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     curl -Ls https://www.openssl.org/source/openssl-1.1.1m.tar.gz -o openssl.tar.gz && \
     echo "f89199be8b23ca45fc7cb9f1d8d3ee67312318286ad030f5316aca6462db6c96  openssl.tar.gz" > openssl-sha.txt && \
     sha256sum --quiet -c openssl-sha.txt && \
@@ -263,7 +265,7 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     rm -rf /tmp/*
 
 # build/install boringssl
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     source /opt/rh/rh-python38/enable && \
     source /opt/rh/rh-ruby27/enable && \
     source /etc/profile.d/golang.sh && \
@@ -338,7 +340,7 @@ RUN curl -Ls https://github.com/facebook/rocksdb/archive/refs/tags/v7.7.3.tar.gz
     rm -rf /tmp/*
 
 # install Boost::context, Boost::filesystem & Boost::iostreams 1.78 to /opt
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
     echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
@@ -354,7 +356,7 @@ RUN source /opt/rh/devtoolset-11/enable && \
 # Boost::context depens on some C++11 features, e.g. std::call_once; however,
 # gcc and clang are using different ABIs, thus a gcc-built Boost::context is
 # not linkable to clang objects.
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
     echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
@@ -367,7 +369,7 @@ RUN source /opt/rh/devtoolset-11/enable && \
     rm -rf /tmp/*
 
 # jemalloc (needed for FDB after 6.3)
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     curl -Ls https://github.com/jemalloc/jemalloc/releases/download/5.2.1/jemalloc-5.2.1.tar.bz2 -o jemalloc-5.2.1.tar.bz2 && \
     echo "34330e5ce276099e2e8950d9335db5a875689a4c6a56751ef3b1d8c537f887f6  jemalloc-5.2.1.tar.bz2" > jemalloc-sha.txt && \
     sha256sum --quiet -c jemalloc-sha.txt && \
@@ -381,7 +383,7 @@ RUN source /opt/rh/devtoolset-11/enable && \
     rm -rf /tmp/*
 
 # Install CCACHE
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     curl -Ls https://github.com/ccache/ccache/releases/download/v4.0/ccache-4.0.tar.gz -o ccache.tar.gz && \
     echo "ac97af86679028ebc8555c99318352588ff50f515fc3a7f8ed21a8ad367e3d45  ccache.tar.gz" > ccache-sha256.txt && \
     sha256sum --quiet -c ccache-sha256.txt && \
@@ -395,7 +397,7 @@ RUN source /opt/rh/devtoolset-11/enable && \
     rm -rf /tmp/*
 
 # build/install toml
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     curl -Ls https://github.com/ToruNiina/toml11/archive/v3.4.0.tar.gz -o toml.tar.gz && \
     echo "bc6d733efd9216af8c119d8ac64a805578c79cc82b813e4d1d880ca128bd154d  toml.tar.gz" > toml-sha256.txt && \
     sha256sum --quiet -c toml-sha256.txt && \
@@ -410,7 +412,7 @@ RUN source /opt/rh/devtoolset-11/enable && \
     rm -rf /tmp/*
 
 # build/install distcc
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     source /opt/rh/rh-python38/enable && \
     curl -Ls https://github.com/distcc/distcc/archive/v3.3.5.tar.gz -o distcc.tar.gz && \
     echo "13a4b3ce49dfc853a3de550f6ccac583413946b3a2fa778ddf503a9edc8059b0  distcc.tar.gz" > distcc-sha256.txt && \
@@ -426,7 +428,7 @@ RUN source /opt/rh/devtoolset-11/enable && \
     rm -rf /tmp/*
 
 # valgrind
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     curl -Ls https://sourceware.org/pub/valgrind/valgrind-3.17.0.tar.bz2 -o valgrind-3.17.0.tar.bz2 && \
     echo "ad3aec668e813e40f238995f60796d9590eee64a16dff88421430630e69285a2  valgrind-3.17.0.tar.bz2" > valgrind-sha.txt && \
     sha256sum --quiet -c valgrind-sha.txt && \
@@ -517,6 +519,8 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
 # =========================== END OF LAYER: build ==============================
 FROM build as devel
 
+ARG DEVTOOLSET_VERSION=11
+
 # protobuf-compiler and protobuf-devel are used to generate reference data for some tests.
 
 RUN yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/repo/epel-7/carlwgeorge-ripgrep-epel-7.repo && \
@@ -545,7 +549,7 @@ RUN yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlwg
     rm -rf /var/cache/yum
 
 WORKDIR /tmp
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     source /opt/rh/rh-python38/enable && \
     pip3 install \
         boto3 \
@@ -593,7 +597,7 @@ RUN source /opt/rh/devtoolset-11/enable && \
     rm -rf /tmp/*
 
 # install tig (git client)
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     curl -Ls https://github.com/jonas/tig/releases/download/tig-2.5.4/tig-2.5.4.tar.gz -o tig.tar.gz && \
     echo "c48284d30287a6365f8a4750eb0b122e78689a1aef8ce1d2961b6843ac246aa7  tig.tar.gz" > tig-sha.txt && \
     sha256sum --quiet -c tig-sha.txt && \
@@ -607,7 +611,7 @@ RUN source /opt/rh/devtoolset-11/enable && \
     rm -rf /tmp/*
 
 # install newer tmux
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     curl -Ls https://github.com/tmux/tmux/releases/download/3.1c/tmux-3.1c.tar.gz -o tmux.tar.gz && \
     echo "918f7220447bef33a1902d4faff05317afd9db4ae1c9971bef5c787ac6c88386  tmux.tar.gz" > tmux-sha.txt && \
     sha256sum --quiet -c tmux-sha.txt && \
@@ -678,7 +682,7 @@ RUN rm -f /root/anaconda-ks.cfg && \
     > /usr/local/bin/docker_proxy.sh && \
     chmod 755 /usr/local/bin/docker_proxy.sh && \
     printf '%s\n' \
-    'source /opt/rh/devtoolset-11/enable' \
+    "source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable" \
     'source /opt/rh/rh-python38/enable' \
     'source /opt/rh/rh-ruby27/enable' \
     '' \
@@ -721,8 +725,10 @@ RUN rm -f /root/anaconda-ks.cfg && \
 # =========================== END OF LAYER: devel ==============================
 FROM build as distcc
 
+ARG DEVTOOLSET_VERSION=11
+
 RUN useradd distcc && \
-    source /opt/rh/devtoolset-11/enable && \
+    source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     source /opt/rh/rh-python38/enable && \
     update-distcc-symlinks
 
