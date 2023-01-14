@@ -442,6 +442,20 @@ RUN source /opt/rh/devtoolset-11/enable && \
     cd .. && \
     rm -rf /tmp/*
 
+# valgr
+RUN source /opt/rh/devtoolset-11/enable && \
+    curl -Ls https://sourceware.org/pub/valgrind/valgrind-3.17.0.tar.bz2 -o valgrind-3.17.0.tar.bz2 && \
+    echo "ad3aec668e813e40f238995f60796d9590eee64a16dff88421430630e69285a2  valgrind-3.17.0.tar.bz2" > valgrind-sha.txt && \
+    sha256sum --quiet -c valgrind-sha.txt && \
+    mkdir valgrind && \
+    tar --strip-components 1 --no-same-owner --no-same-permissions --directory valgrind -xjf valgrind-3.17.0.tar.bz2 && \
+    cd valgrind && \
+    ./configure && \
+    make && \
+    make install && \
+    cd .. && \
+    rm -rf /tmp/*
+
 # download old fdb binaries and client lib if not on aarch64
 RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
         for old_fdb_version in 7.1.23 7.1.19 7.0.0 6.3.23 6.3.22 6.3.18 6.3.17 6.3.16 6.3.15 6.3.13 6.3.12 6.3.9 6.2.30 6.2.29 6.2.28 6.2.27 6.2.26 6.2.25 6.2.24 6.2.23 6.2.22 6.2.21 6.2.20 6.2.19 6.2.18 6.2.17 6.2.16 6.2.15 6.2.10 6.1.13 6.1.12 6.1.11 6.1.10 6.0.18 6.0.17 6.0.16 6.0.15 6.0.14 5.2.8 5.2.7 5.1.7 5.1.6; do \
