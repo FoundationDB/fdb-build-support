@@ -430,11 +430,11 @@ RUN source /opt/rh/devtoolset-11/enable && \
 
 # valgrind
 RUN source /opt/rh/devtoolset-11/enable && \
-    curl -Ls https://sourceware.org/pub/valgrind/valgrind-3.17.0.tar.bz2 -o valgrind-3.17.0.tar.bz2 && \
-    echo "ad3aec668e813e40f238995f60796d9590eee64a16dff88421430630e69285a2  valgrind-3.17.0.tar.bz2" > valgrind-sha.txt && \
+    curl -Ls https://sourceware.org/pub/valgrind/valgrind-3.20.0.tar.bz2 -o valgrind.tar.bz2 && \
+    echo "8536c031dbe078d342f121fa881a9ecd205cb5a78e639005ad570011bdb9f3c6  valgrind.tar.bz2" > valgrind-sha.txt && \
     sha256sum --quiet -c valgrind-sha.txt && \
     mkdir valgrind && \
-    tar --strip-components 1 --no-same-owner --no-same-permissions --directory valgrind -xjf valgrind-3.17.0.tar.bz2 && \
+    tar --strip-components 1 --no-same-owner --no-same-permissions --directory valgrind -xjf valgrind.tar.bz2 && \
     cd valgrind && \
     ./configure && \
     make && \
