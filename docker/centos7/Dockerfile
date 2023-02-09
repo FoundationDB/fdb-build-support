@@ -74,21 +74,22 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
 RUN sed -i -e 's/\*__block/\*__libc_block/g' /usr/include/unistd.h
 
 
-# install docker 19
+# install docker 20
 ENV DOCKER_BUCKET="download.docker.com" \
     DOCKER_CHANNEL="stable" \
     DIND_COMMIT="3b5fac462d21ca164b3778647420016315289034" \
-    DOCKER_COMPOSE_VERSION="v2.0.1"
+    DOCKER_COMPOSE_VERSION="1.26.0" \
+    DOCKER_BUILDX_VERSION="v0.9.1"
 
-ENV DOCKER_VERSION="19.03.11"
+ENV DOCKER_VERSION="20.10.21"
 
 VOLUME /var/lib/docker
 
 RUN set -ex \
     && if [ "$(uname -m)" == "aarch64" ]; then \
-        DOCKER_SHA256="9cd49fe82f6b7ec413b04daef35bc0c87b01d6da67611e5beef36291538d3145"; \
+        DOCKER_SHA256="b4ceb6151d4dd1bfc7557f5fe0317e29cfcac91f798c34fae7dee891a811f8ee"; \
     else \
-        DOCKER_SHA256="0f4336378f61ed73ed55a356ac19e46699a995f2aff34323ba5874d131548b9e"; \
+        DOCKER_SHA256="2582bed8772b283bda9d4565c0af76ee653c93d93dc6b8d0aad795d731a1bb81"; \
     fi \
     && curl -fSLs "https://${DOCKER_BUCKET}/linux/static/${DOCKER_CHANNEL}/$(uname -m)/docker-${DOCKER_VERSION}.tgz" -o docker.tgz \
     && echo "${DOCKER_SHA256} *docker.tgz" | sha256sum --quiet -c - \
@@ -101,8 +102,10 @@ RUN set -ex \
     && echo 'dockremap:165536:65536' >> /etc/subuid \
     && echo 'dockremap:165536:65536' >> /etc/subgid \
     && curl -Ls "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" -o /usr/local/bin/dind \
-    && curl -Ls https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m) > /usr/local/bin/docker-compose \
-    && chmod +x /usr/local/bin/dind /usr/local/bin/docker-compose \
+    && curl -Ls https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose \
+    && mkdir -p /usr/local/lib/docker/cli-plugins \
+    && curl -Ls https://github.com/docker/buildx/releases/download/${DOCKER_BUILDX_VERSION}/buildx-${DOCKER_BUILDX_VERSION}.$(uanme -s)-$(uname -m) -o /usr/local/lib/docker/cli-plugins/docker-buildx \
+    && chmod +x /usr/local/bin/dind /usr/local/bin/docker-compose /usr/local/lib/docker/cli-plugins/docker-buildx \
     && docker-compose version
 
 # build/install lz4
@@ -347,7 +350,7 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     mkdir -p /opt/boost_1_78_0 && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0 -xjf boost_1_78_0.tar.bz2 && \
     cd /opt/boost_1_78_0 && \
-    ./bootstrap.sh --with-libraries=context,filesystem,iostreams &&\
+    ./bootstrap.sh --with-libraries=context,filesystem,iostreams,system,serialization && \
     ./b2 link=static cxxflags="-std=c++14 -fPIC" --prefix=/opt/boost_1_78_0 install &&\
     rm -rf /opt/boost_1_78_0/libs && \
     rm -rf /tmp/*
@@ -363,18 +366,18 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     mkdir -p /opt/boost_1_78_0_clang && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0_clang -xjf boost_1_78_0.tar.bz2 && \
     cd /opt/boost_1_78_0_clang && \
-    ./bootstrap.sh --with-toolset=clang --with-libraries=context,filesystem,iostreams && \
+    ./bootstrap.sh --with-toolset=clang --with-libraries=context,filesystem,iostreams,system,serialization && \
     ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++ -fPIC" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_78_0_clang install && \
     rm -rf /opt/boost_1_78_0_clang/libs && \
     rm -rf /tmp/*
 
 # jemalloc (needed for FDB after 6.3)
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
-    curl -Ls https://github.com/jemalloc/jemalloc/releases/download/5.2.1/jemalloc-5.2.1.tar.bz2 -o jemalloc-5.2.1.tar.bz2 && \
-    echo "34330e5ce276099e2e8950d9335db5a875689a4c6a56751ef3b1d8c537f887f6  jemalloc-5.2.1.tar.bz2" > jemalloc-sha.txt && \
+    curl -Ls https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2 -o jemalloc.tar.bz2 && \
+    echo "2db82d1e7119df3e71b7640219b6dfe84789bc0537983c3b7ac4f7189aecfeaa  jemalloc.tar.bz2" > jemalloc-sha.txt && \
     sha256sum --quiet -c jemalloc-sha.txt && \
     mkdir jemalloc && \
-    tar --strip-components 1 --no-same-owner --no-same-permissions --directory jemalloc -xjf jemalloc-5.2.1.tar.bz2 && \
+    tar --strip-components 1 --no-same-owner --no-same-permissions --directory jemalloc -xjf jemalloc.tar.bz2 && \
     cd jemalloc && \
     ./configure --enable-static --disable-cxx --enable-prof && \
     make && \
@@ -429,13 +432,13 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
 
 # valgrind
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
-    curl -Ls https://sourceware.org/pub/valgrind/valgrind-3.17.0.tar.bz2 -o valgrind-3.17.0.tar.bz2 && \
-    echo "ad3aec668e813e40f238995f60796d9590eee64a16dff88421430630e69285a2  valgrind-3.17.0.tar.bz2" > valgrind-sha.txt && \
+    curl -Ls https://sourceware.org/pub/valgrind/valgrind-3.20.0.tar.bz2 -o valgrind.tar.bz2 && \
+    echo "8536c031dbe078d342f121fa881a9ecd205cb5a78e639005ad570011bdb9f3c6  valgrind.tar.bz2" > valgrind-sha.txt && \
     sha256sum --quiet -c valgrind-sha.txt && \
     mkdir valgrind && \
-    tar --strip-components 1 --no-same-owner --no-same-permissions --directory valgrind -xjf valgrind-3.17.0.tar.bz2 && \
+    tar --strip-components 1 --no-same-owner --no-same-permissions --directory valgrind -xjf valgrind.tar.bz2 && \
     cd valgrind && \
-    ./configure && \
+    ./configure --enable-only64bit --enable-lto && \
     make && \
     make install && \
     cd .. && \
