@@ -267,6 +267,25 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     go install sigs.k8s.io/kind@v0.17.0 && \
     rm -rf /tmp/*
 
+# build/install googlebenchmark
+# If you change this, then old versions of FDB will stop building in the resulting image.  If you need to support old and
+# new builds, then copy the below, and download / compile a second version with the newer SHA.  This needs to be kept in
+# lock-step with the CMake logic that automatically downloads external dependencies.  See flowbench/CMakeLists.cmake and
+# flowbench/benchmark.cmake in the main FDB repo for more information.
+
+# The perl one-liner tells the googlebenchmark build to download a specific SHA of googletest.  By default, they track
+# (tracked?) master, which no longer exists, and risks version skew / incompatibility.
+
+# We disable regexp support because the system version of that library only works with GCC.
+RUN source /opt/rh/devtoolset-11/enable && \
+    cd /opt && \
+    git clone https://github.com/google/benchmark.git googlebenchmark-f91b6b && \
+    cd googlebenchmark-f91b6b/ && \
+    git checkout f91b6b42b1b9854772a90ae9501464a161707d1e && \
+    perl -p -i -e s/master/2fe3bd994b3189899d93f1d5a881e725e046fdc2/ cmake/GoogleTest.cmake.in && \
+    cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS="-stdlib=libc++" -DCMAKE_BUILD_TYPE=Release -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on -DBENCHMARK_ENABLE_LTO=true -DRUN_HAVE_STD_REGEX=0 -DRUN_HAVE_POSIX_REGEX=0 && \
+    make -j 16
+
 # build/install boringssl
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     source /opt/rh/rh-python38/enable && \
