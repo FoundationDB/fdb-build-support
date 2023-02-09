@@ -436,7 +436,7 @@ RUN source /opt/rh/devtoolset-11/enable && \
     mkdir valgrind && \
     tar --strip-components 1 --no-same-owner --no-same-permissions --directory valgrind -xjf valgrind.tar.bz2 && \
     cd valgrind && \
-    ./configure && \
+    ./configure --enable-only64bit --enable-lto && \
     make && \
     make install && \
     cd .. && \
