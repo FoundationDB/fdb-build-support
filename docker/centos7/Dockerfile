@@ -336,6 +336,29 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
         rm -rf /tmp/*; \
     fi
 
+# download junit dependencies
+RUN mkdir /opt/junit_dependencies && \
+    cd    /opt/junit_dependencies && \
+    curl -LsO https://search.maven.org/remotecontent?filepath=org/junit/jupiter/junit-jupiter-engine/5.7.1/junit-jupiter-engine-5.7.1.jar && \
+    curl -LsO https://search.maven.org/remotecontent?filepath=org/junit/jupiter/junit-jupiter-api/5.7.1/junit-jupiter-api-5.7.1.jar && \
+    curl -LsO https://search.maven.org/remotecontent?filepath=org/junit/jupiter/junit-jupiter-params/5.7.1/junit-jupiter-params-5.7.1.jar && \
+    curl -LsO https://search.maven.org/remotecontent?filepath=org/junit/platform/junit-platform-commons/1.7.1/junit-platform-commons-1.7.1.jar && \
+    curl -LsO https://search.maven.org/remotecontent?filepath=org/junit/platform/junit-platform-engine/1.7.1/junit-platform-engine-1.7.1.jar && \
+    curl -LsO https://search.maven.org/remotecontent?filepath=org/junit/platform/junit-platform-launcher/1.7.1/junit-platform-launcher-1.7.1.jar && \
+    curl -LsO https://search.maven.org/remotecontent?filepath=org/junit/platform/junit-platform-console/1.7.1/junit-platform-console-1.7.1.jar && \
+    curl -LsO https://search.maven.org/remotecontent?filepath=org/apiguardian/apiguardian-api/1.1.1/apiguardian-api-1.1.1.jar && \
+    curl -LsO https://search.maven.org/remotecontent?filepath=org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar && \
+    echo "fc68f0d28633caccf3980fdf1e99628fba9c49424ee56dc685cd8b4d2a9fefde apiguardian-api-1.1.1.jar" > junit_dependencies.sha256 && \
+    echo "ce7b985bc469e2625759a4ebc45533c70581a05a348278c1d6408e9b2e35e314 junit-jupiter-api-5.7.1.jar" >> junit_dependencies.sha256 && \
+    echo "56616c9350b3624f76cffef6b24ce7bb222915bfd5688f96d3cf4cef34f077cb junit-jupiter-engine-5.7.1.jar" >> junit_dependencies.sha256 && \
+    echo "8effdd7f8a4ba5558b568184dee08008b2443c86c673ef81de5861fbc7ef0613 junit-jupiter-params-5.7.1.jar" >> junit_dependencies.sha256 && \
+    echo "7c546be86864718fbaceb79fa84ff1d3a516500fc428f1b21d061c2e0fbc5a4b junit-platform-commons-1.7.1.jar" >> junit_dependencies.sha256 && \
+    echo "11ed48fcdfcea32f2fa98872db7ecba2d49d178f76493e7a149a2242363ad12e junit-platform-console-1.7.1.jar" >> junit_dependencies.sha256 && \
+    echo "37df5a9cd6dbc1f754ba2b46f96b8874a83660e1796bf38c738f022dcf86c23f junit-platform-engine-1.7.1.jar" >> junit_dependencies.sha256 && \
+    echo "3122ac6fb284bc50e3afe46419fc977f94d580e9d3d1ea58805d200b510a99ee junit-platform-launcher-1.7.1.jar" >> junit_dependencies.sha256 && \
+    echo "58812de60898d976fb81ef3b62da05c6604c18fd4a249f5044282479fc286af2 opentest4j-1.2.0.jar" >> junit_dependencies.sha256 && \
+    sha256sum --quiet -c junit_dependencies.sha256
+
 # install gradle
 RUN curl -Ls https://services.gradle.org/distributions/gradle-7.5.1-bin.zip -o gradle.zip && \
     echo "f6b8596b10cce501591e92f229816aa4046424f3b24d771751b06779d58c8ec4  gradle.zip" > gradle-sha.txt && \
