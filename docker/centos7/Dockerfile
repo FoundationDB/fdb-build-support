@@ -384,7 +384,11 @@ RUN curl -Ls https://github.com/facebook/rocksdb/archive/refs/tags/v7.7.3.tar.gz
     tar --directory /opt -xf rocksdb.tar.gz && \
     rm -rf /tmp/*
 
-# install Boost::context, Boost::filesystem & Boost::iostreams 1.78 to /opt
+# install Boost to /opt
+# This used to pass --with-libraries=context,filesystem,iostreams,system,serialization
+# which doesn't build serialization (or builds it in a form that downstream cmake builds
+# cannot find).  Instead of debugging their build logic, we pass "all", which is simpler to
+# maintain and does build serialization.
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
     echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
@@ -392,13 +396,13 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     mkdir -p /opt/boost_1_78_0 && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0 -xjf boost_1_78_0.tar.bz2 && \
     cd /opt/boost_1_78_0 && \
-    ./bootstrap.sh --with-libraries=context,filesystem,iostreams,system,serialization && \
+    ./bootstrap.sh --with-libraries=all && \
     ./b2 link=static cxxflags="-std=c++14 -fPIC" --prefix=/opt/boost_1_78_0 install &&\
     rm -rf /opt/boost_1_78_0/libs && \
     rm -rf /tmp/*
 
-# Install Boost::context, Boost::filesystem & Boost::iostreams 1.78 to /opt, using clang to compile the library
-# Boost::context depens on some C++11 features, e.g. std::call_once; however,
+# install Boost to /opt, using clang to compile the library
+# Boost::context depends on some C++11 features, e.g. std::call_once; however,
 # gcc and clang are using different ABIs, thus a gcc-built Boost::context is
 # not linkable to clang objects.
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
@@ -408,8 +412,8 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     mkdir -p /opt/boost_1_78_0_clang && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0_clang -xjf boost_1_78_0.tar.bz2 && \
     cd /opt/boost_1_78_0_clang && \
-    ./bootstrap.sh --with-toolset=clang --with-libraries=context,filesystem,iostreams,system,serialization && \
-    ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++ -fPIC" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_78_0_clang install && \
+    ./bootstrap.sh --with-toolset=clang --with-libraries=all && \
+    ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++ -fPIC" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_78_0_clang -j32 install && \
     rm -rf /opt/boost_1_78_0_clang/libs && \
     rm -rf /tmp/*
 
