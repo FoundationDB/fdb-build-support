@@ -277,7 +277,7 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
 # (tracked?) master, which no longer exists, and risks version skew / incompatibility.
 
 # We disable regexp support because the system version of that library only works with GCC.
-RUN source /opt/rh/devtoolset-11/enable && \
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     cd /opt && \
     git clone https://github.com/google/benchmark.git googlebenchmark-f91b6b && \
     cd googlebenchmark-f91b6b/ && \
@@ -310,7 +310,7 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
 
 # build/install wolfssl if not on aarch64
 RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
-        source /opt/rh/devtoolset-11/enable && \
+        source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
         mkdir wolfssl && \
         pushd  wolfssl && \
         git init && \
@@ -390,6 +390,7 @@ RUN curl -Ls https://github.com/facebook/rocksdb/archive/refs/tags/v7.7.3.tar.gz
 # cannot find).  Instead of debugging their build logic, we pass "all", which is simpler to
 # maintain and does build serialization.
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
+    source /opt/rh/rh-python38/enable && \
     curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
     echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
@@ -397,7 +398,7 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0 -xjf boost_1_78_0.tar.bz2 && \
     cd /opt/boost_1_78_0 && \
     ./bootstrap.sh --with-libraries=all && \
-    ./b2 link=static cxxflags="-std=c++14 -fPIC" --prefix=/opt/boost_1_78_0 install &&\
+    ./b2 link=static cxxflags="-std=c++14 -fPIC" --prefix=/opt/boost_1_78_0 -j32 install &&\
     rm -rf /opt/boost_1_78_0/libs && \
     rm -rf /tmp/*
 
@@ -406,6 +407,7 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
 # gcc and clang are using different ABIs, thus a gcc-built Boost::context is
 # not linkable to clang objects.
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
+    source /opt/rh/rh-python38/enable && \
     curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
     echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
