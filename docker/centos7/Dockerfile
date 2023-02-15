@@ -336,6 +336,18 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
         rm -rf /tmp/*; \
     fi
 
+# install doctest_proj to /opt
+# We use this in a header-only fashion, so there's no reason to compile it here.
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
+    mkdir -p /opt/doctest_proj_2.4.8 && \
+    pushd /opt/doctest_proj_2.4.8 && \
+    git init && \
+    git remote add origin https://github.com/onqtam/doctest.git && \
+    git fetch --depth 1 origin 7b9885133108ae301ddd16e2651320f54cafeba7 && \
+    git checkout FETCH_HEAD && \
+    popd && \
+    rm -rf /tmp/*
+
 # download junit dependencies
 RUN mkdir /opt/junit_dependencies && \
     cd    /opt/junit_dependencies && \
@@ -430,6 +442,34 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     ./configure --enable-static --disable-cxx --enable-prof && \
     make && \
     make install && \
+    cd .. && \
+    rm -rf /tmp/*
+
+# install jemalloc to /opt/jemalloc_5.3.0 (The FDB build no longer finds the above
+# one for some reason; also installing it system-wide makes it difficult to upgrade
+# the dependency without accidentally upgrading it for older FDB branches.)
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
+    curl -Ls https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2 -o jemalloc.tar.bz2 && \
+    echo "2db82d1e7119df3e71b7640219b6dfe84789bc0537983c3b7ac4f7189aecfeaa  jemalloc.tar.bz2" > jemalloc-sha.txt && \
+    sha256sum --quiet -c jemalloc-sha.txt && \
+    mkdir -p /opt/jemalloc_5.3.0 && \
+    tar --strip-components 1 --no-same-owner --no-same-permissions --directory /opt/jemalloc_5.3.0 -xjf jemalloc.tar.bz2 && \
+    cd /opt/jemalloc_5.3.0 && \
+    ./configure --enable-static --disable-cxx --enable-prof && \
+    make -j32 && \
+    cd .. && \
+    rm -rf /tmp/*
+
+# install msgpack
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
+    curl -LsO https://github.com/msgpack/msgpack-c/releases/download/cpp-3.3.0/msgpack-3.3.0.tar.gz && \
+    echo "6e114d12a5ddb8cb11f669f83f32246e484a8addd0ce93f274996f1941c1f07b  msgpack-3.3.0.tar.gz" > msgpack-sha.txt && \
+    sha256sum --quiet -c msgpack-sha.txt && \
+    mkdir -p /opt/msgpack_3.3.0 && \
+    tar --strip-components 1 --no-same-owner --no-same-permissions --directory /opt/msgpack_3.3.0 -xf msgpack-3.3.0.tar.gz && \
+    cd /opt/msgpack_3.3.0 && \
+    cmake . && \
+    make && \
     cd .. && \
     rm -rf /tmp/*
 
