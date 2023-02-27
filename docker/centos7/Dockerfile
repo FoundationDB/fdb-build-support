@@ -286,6 +286,16 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS="-stdlib=libc++" -DCMAKE_BUILD_TYPE=Release -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on -DBENCHMARK_ENABLE_LTO=true -DRUN_HAVE_STD_REGEX=0 -DRUN_HAVE_POSIX_REGEX=0 && \
     make -j 16
 
+# Build a g++ version of google benchmark.
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
+    cd /opt && \
+    git clone https://github.com/google/benchmark.git googlebenchmark-f91b6b-g++ && \
+    cd googlebenchmark-f91b6b-g++/ && \
+    git checkout f91b6b42b1b9854772a90ae9501464a161707d1e && \
+    perl -p -i -e s/master/2fe3bd994b3189899d93f1d5a881e725e046fdc2/ cmake/GoogleTest.cmake.in && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on -DBENCHMARK_ENABLE_LTO=true -DRUN_HAVE_STD_REGEX=0 -DRUN_HAVE_POSIX_REGEX=0 && \
+    make -j 16
+
 # build/install boringssl
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     source /opt/rh/rh-python38/enable && \
