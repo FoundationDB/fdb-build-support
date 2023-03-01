@@ -318,34 +318,6 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     mkdir -p /opt/boringssl/lib && \
     cp crypto/libcrypto.a ssl/libssl.a /opt/boringssl/lib/
 
-# build/install wolfssl if not on aarch64
-RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
-        source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
-        mkdir wolfssl && \
-        pushd  wolfssl && \
-        git init && \
-        git remote add origin https://github.com/wolfSSL/wolfssl.git && \
-        # e1829e6: Add wolfSSL_EVP_PKEY_paramgen to the compatibility layer. \
-        git fetch --depth 1 origin e1829e614d35ad2dd1d6cc06d493158f16cca505 && \
-        git checkout FETCH_HEAD && \
-        # add new macro \
-        sed -i "$(grep -nE '^#define ASN1_IA5STRING.*' wolfssl/openssl/ssl.h | awk -F':' '{ print $1 }' | head -n1) i #define ASN1_IA5STRING_new              wolfSSL_ASN1_STRING_new" wolfssl/openssl/ssl.h && \
-        # fix naming collision \
-        sed -i 's/internal_error/wolfssl_internal_error/g' src/internal.c src/ssl.c wolfssl/ssl.h && \
-        # fix to allow our version of autoconf \
-        sed -i 's/1\.14\.1/1.13.4/g' configure.ac && \
-        ./autogen.sh && \
-        ./configure CFLAGS="-O3 -fPIC" --prefix=/opt/wolfSSL --enable-aesni \
-         --enable-aesgcm  --enable-aesctr  --enable-intelasm \
-         --enable-sp --enable-sp-asm --enable-sp-math-all \
-         --enable-opensslextra --enable-opensslall --enable-asio \
-         --enable-static  --enable-pwdbased --enable-sessioncerts && \
-        make -j "$(nproc)" && \
-        make install && \
-        popd && \
-        rm -rf /tmp/*; \
-    fi
-
 # install doctest_proj to /opt
 # We use this in a header-only fashion, so there's no reason to compile it here.
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
