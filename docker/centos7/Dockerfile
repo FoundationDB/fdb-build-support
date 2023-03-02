@@ -275,30 +275,33 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
 
 # The perl one-liner tells the googlebenchmark build to download a specific SHA of googletest.  By default, they track
 # (tracked?) master, which no longer exists, and risks version skew / incompatibility.
-
-# We disable regexp support for Clang because the system version of that library only works with GCC.
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     cd /tmp && \
     git clone https://github.com/google/benchmark.git googlebenchmark-f91b6b && \
     cd googlebenchmark-f91b6b/ && \
     git checkout f91b6b42b1b9854772a90ae9501464a161707d1e && \
-    perl -p -i -e s/master/2fe3bd994b3189899d93f1d5a881e725e046fdc2/ cmake/GoogleTest.cmake.in && \
+    perl -p -i -e s/master/2fe3bd994b3189899d93f1d5a881e725e046fdc2/ cmake/GoogleTest.cmake.in
+
+# We disable regexp support for Clang because the system version of that library only works with GCC.
+RUN mkdir -p /opt/googlebenchmark-clang && \
     mkdir build-clang && \
     cd build-clang && \
     cmake .. -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS="-stdlib=libc++" -DCMAKE_BUILD_TYPE=Release -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on -DBENCHMARK_ENABLE_LTO=true -DRUN_HAVE_STD_REGEX=0 -DRUN_HAVE_POSIX_REGEX=0 -DCMAKE_INSTALL_PREFIX=/opt/googlebenchmark-clang && \
     make -j 16 && \
-    mkdir -p /opt/googlebenchmark-clang && \
     make install && \
     cd .. && \
+    ln -s /opt/googlebenchmark-clang /opt/googlebenchmark-f91b6b
+
+RUN mkdir -p /opt/googlebenchmark-gcc && \
     mkdir build-gcc && \
-    cmake -DCMAKE_BUILD_TYPE=Release -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on -DBENCHMARK_ENABLE_LTO=true -DRUN_HAVE_STD_REGEX=0 -DRUN_HAVE_POSIX_REGEX=0 -DCMAKE_INSTALL_PREFIX=/opt/googlebenchmark-gcc && \
+    cd build-gcc && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on -DBENCHMARK_ENABLE_LTO=true -DRUN_HAVE_STD_REGEX=0 -DRUN_HAVE_POSIX_REGEX=0 -DCMAKE_INSTALL_PREFIX=/opt/googlebenchmark-gcc && \
     make -j 16 && \
-    mkdir -p /opt/googlebenchmark-gcc && \
     make install && \
     cd / && \
-    rm -rf /tmp/googlebenchmark* && \
-    ln -s /opt/googlebenchmark-clang /opt/googlebenchmark-f91b6b && \
     ln -s /opt/googlebenchmark-gcc /opt/googlebenchmark-f91b6b-g++
+
+RUN rm -rf /tmp/googlebenchmark*
 
 # build/install boringssl
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
