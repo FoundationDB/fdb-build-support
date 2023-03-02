@@ -284,8 +284,8 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
 
 # We disable regexp support for Clang because the system version of that library only works with GCC.
 RUN mkdir -p /opt/googlebenchmark-clang && \
-    mkdir build-clang && \
-    cd build-clang && \
+    mkdir -p /tmp/googlebenchmark-f91b6b/build-clang && \
+    cd /tmp/googlebenchmark-f91b6b/build-clang && \
     cmake .. -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS="-stdlib=libc++" -DCMAKE_BUILD_TYPE=Release -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on -DBENCHMARK_ENABLE_LTO=true -DRUN_HAVE_STD_REGEX=0 -DRUN_HAVE_POSIX_REGEX=0 -DCMAKE_INSTALL_PREFIX=/opt/googlebenchmark-clang && \
     make -j 16 && \
     make install && \
@@ -293,8 +293,8 @@ RUN mkdir -p /opt/googlebenchmark-clang && \
     ln -s /opt/googlebenchmark-clang /opt/googlebenchmark-f91b6b
 
 RUN mkdir -p /opt/googlebenchmark-gcc && \
-    mkdir build-gcc && \
-    cd build-gcc && \
+    mkdir -p /tmp/googlebenchmark-f91b6b/build-gcc && \
+    cd /tmp/googlebenchmark-f91b6b/build-gcc && \
     cmake .. -DCMAKE_BUILD_TYPE=Release -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on -DBENCHMARK_ENABLE_LTO=true -DRUN_HAVE_STD_REGEX=0 -DRUN_HAVE_POSIX_REGEX=0 -DCMAKE_INSTALL_PREFIX=/opt/googlebenchmark-gcc && \
     make -j 16 && \
     make install && \
