@@ -797,6 +797,34 @@ RUN rm -f /root/anaconda-ks.cfg && \
     '   source $USER_BASHRC' \
     'fi' \
     '' \
+    'function addr2line() {' \
+    '    EXECUTABLE=""' \
+    '    while getopts ":e:" OPTION' \
+    '    do' \
+    '            case "$OPTION" in' \
+    '                    e)' \
+    '                            EXECUTABLE="$OPTARG"' \
+    '                            ;;' \
+    '                    ?)' \
+    '                            ;;' \
+    '            esac' \
+    '    done' \
+    '    if [ -z $EXECUTABLE ]' \
+    '    then' \
+    '            echo "Missing executable"' \
+    '            exit 1' \
+    '    fi' \
+    '    readelf -p .comment $EXECUTABLE | grep -q "clang"' \
+    '    if [ $? -eq 0 ]' \
+    '    then' \
+    '            # This is a clang generated ELF' \
+    '            llvm-addr2line "$@"' \
+    '    else' \
+    '            # This is gcc/other compiler generated ELF' \
+    '            command addr2line "$@"' \
+    '    fi' \
+    '}' \
+    '' \
     'source $HOME/.cargo/env' \
     '' \
     '# export OPENSSL_ROOT_DIR=/opt/boringssl'  \
