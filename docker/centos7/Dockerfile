@@ -574,21 +574,18 @@ RUN echo "${SWIFT_WEBROOT}/latest-build.yml"
 # https://www.swift.org/download/
 RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
         set -e; \
-        # - Latest Toolchain info
-        export $(curl -s ${SWIFT_WEBROOT}/latest-build.yml | grep 'download:' | sed 's/:[^:\/\/]/=/g')  \
-        && export $(curl -s ${SWIFT_WEBROOT}/latest-build.yml | grep 'download_signature:' | sed 's/:[^:\/\/]/=/g')  \
-        && export DOWNLOAD_DIR=$(echo $download | sed "s/-${OS_VER}.tar.gz//g") \
-        && echo $DOWNLOAD_DIR > .swift_tag \
-        # - Download the GPG keys, Swift toolchain, and toolchain signature, and verify.
-        && export GNUPGHOME="$(mktemp -d)" \
-        && curl -fL ${SWIFT_WEBROOT}/${DOWNLOAD_DIR}/${download} -o latest_toolchain.tar.gz \
-        ${SWIFT_WEBROOT}/${DOWNLOAD_DIR}/${download_signature} -o latest_toolchain.tar.gz.sig \
-        && curl -fL https://swift.org/keys/all-keys.asc | gpg --import -  \
-        && gpg --batch --verify latest_toolchain.tar.gz.sig latest_toolchain.tar.gz \
-        # - Unpack the toolchain, set libs permissions, and clean up.
-        && tar -xzf latest_toolchain.tar.gz --directory / --strip-components=1 \
-        && chmod -R o+r /usr/lib/swift \
-        && rm -rf "$GNUPGHOME" latest_toolchain.tar.gz.sig latest_toolchain.tar.gz; \
+        export $(curl -Ls ${SWIFT_WEBROOT}/latest-build.yml | grep 'download:' | sed 's/:[^:\/\/]/=/g')  \
+        export $(curl -Ls ${SWIFT_WEBROOT}/latest-build.yml | grep 'download_signature:' | sed 's/:[^:\/\/]/=/g')  && \
+        export DOWNLOAD_DIR=$(echo $download | sed "s/-${OS_VER}.tar.gz//g") && \
+        echo $DOWNLOAD_DIR > .swift_tag && \
+        export GNUPGHOME="$(mktemp -d)" && \
+        curl -fLs ${SWIFT_WEBROOT}/${DOWNLOAD_DIR}/${download} -o latest_toolchain.tar.gz && \
+        curl -fLs ${SWIFT_WEBROOT}/${DOWNLOAD_DIR}/${download_signature} -o latest_toolchain.tar.gz.sig && \
+        curl -fLs https://swift.org/keys/all-keys.asc | gpg --import -  && \
+        gpg --batch --verify latest_toolchain.tar.gz.sig latest_toolchain.tar.gz && \
+        tar -xzf latest_toolchain.tar.gz --directory / --strip-components=1 && \
+        chmod -R o+r /usr/lib/swift && \
+        rm -rf "$GNUPGHOME" latest_toolchain.tar.gz.sig latest_toolchain.tar.gz; && \
     fi
 
 # Print Installed Swift Version
