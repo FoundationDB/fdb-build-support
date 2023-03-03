@@ -574,7 +574,7 @@ RUN echo "${SWIFT_WEBROOT}/latest-build.yml"
 # https://www.swift.org/download/
 RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
         set -e; \
-        export $(curl -Ls ${SWIFT_WEBROOT}/latest-build.yml | grep 'download:' | sed 's/:[^:\/\/]/=/g')  \
+        export $(curl -Ls ${SWIFT_WEBROOT}/latest-build.yml | grep 'download:' | sed 's/:[^:\/\/]/=/g') && \
         export $(curl -Ls ${SWIFT_WEBROOT}/latest-build.yml | grep 'download_signature:' | sed 's/:[^:\/\/]/=/g')  && \
         export DOWNLOAD_DIR=$(echo $download | sed "s/-${OS_VER}.tar.gz//g") && \
         echo $DOWNLOAD_DIR > .swift_tag && \
@@ -585,7 +585,7 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
         gpg --batch --verify latest_toolchain.tar.gz.sig latest_toolchain.tar.gz && \
         tar -xzf latest_toolchain.tar.gz --directory / --strip-components=1 && \
         chmod -R o+r /usr/lib/swift && \
-        rm -rf "$GNUPGHOME" latest_toolchain.tar.gz.sig latest_toolchain.tar.gz; && \
+        rm -rf "$GNUPGHOME" latest_toolchain.tar.gz.sig latest_toolchain.tar.gz; \
     fi
 
 # Print Installed Swift Version
