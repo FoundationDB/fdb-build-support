@@ -283,47 +283,46 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     perl -p -i -e s/master/2fe3bd994b3189899d93f1d5a881e725e046fdc2/ cmake/GoogleTest.cmake.in
 
 # We disable regexp support for Clang because the system version of that library only works with GCC.
-RUN mkdir -p /opt/googlebenchmark-clang && \
+RUN GOOGLE_BENCHMARK_INSTALL_DIR_CLANG="/opt/googlebenchmark-f91b6b" && \
+    mkdir -p ${GOOGLE_BENCHMARK_INSTALL_DIR_CLANG} && \
+    cd /tmp/googlebenchmark-f91b6b && \
     mkdir -p /tmp/googlebenchmark-f91b6b/build-clang && \
+    cmake -DCMAKE_BUILD_TYPE=Release \
+        -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on \
+        -DBENCHMARK_ENABLE_LTO=true \
+        -DRUN_HAVE_STD_REGEX=0 \
+        -DRUN_HAVE_POSIX_REGEX=0  \
+        -DCMAKE_INSTALL_PREFIX=${GOOGLE_BENCHMARK_INSTALL_DIR_CLANG} \
+        -DCMAKE_C_COMPILER=clang \
+        -DCMAKE_CXX_COMPILER=clang++ \
+        -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
+        -S /tmp/googlebenchmark-f91b6b \
+        -B /tmp/googlebenchmark-f91b6b/build-clang && \
     cd /tmp/googlebenchmark-f91b6b/build-clang && \
-    cmake .. -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS="-stdlib=libc++" -DCMAKE_BUILD_TYPE=Release -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on -DBENCHMARK_ENABLE_LTO=true -DRUN_HAVE_STD_REGEX=0 -DRUN_HAVE_POSIX_REGEX=0 -DCMAKE_INSTALL_PREFIX=/opt/googlebenchmark-clang && \
     make -j 16 && \
     make install && \
-    cd .. && \
-    ln -s /opt/googlebenchmark-clang /opt/googlebenchmark-f91b6b
+    cd /tmp/googlebenchmark-f91b6b && \
+    rm -rf /tmp/googlebenchmark-f91b6b/build-clang
 
-RUN mkdir -p /opt/googlebenchmark-gcc && \
+RUN GOOGLE_BENCHMARK_INSTALL_DIR_GCC="/opt/googlebenchmark-f91b6b-g++" && \
+    mkdir -p ${GOOGLE_BENCHMARK_INSTALL_DIR_GCC} && \
+    cd /tmp/googlebenchmark-f91b6b && \
     mkdir -p /tmp/googlebenchmark-f91b6b/build-gcc && \
+    cmake -DCMAKE_BUILD_TYPE=Release \
+        -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on \
+        -DBENCHMARK_ENABLE_LTO=true \
+        -DRUN_HAVE_STD_REGEX=0 \
+        -DRUN_HAVE_POSIX_REGEX=0 \
+        -DCMAKE_INSTALL_PREFIX=${GOOGLE_BENCHMARK_INSTALL_DIR_GCC} \
+        -S /tmp/googlebenchmark-f91b6b \
+        -B /tmp/googlebenchmark-f91b6b/build-gcc && \
     cd /tmp/googlebenchmark-f91b6b/build-gcc && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on -DBENCHMARK_ENABLE_LTO=true -DRUN_HAVE_STD_REGEX=0 -DRUN_HAVE_POSIX_REGEX=0 -DCMAKE_INSTALL_PREFIX=/opt/googlebenchmark-gcc && \
     make -j 16 && \
     make install && \
-    cd / && \
-    ln -s /opt/googlebenchmark-gcc /opt/googlebenchmark-f91b6b-g++
+    cd /tmp/googlebenchmark-f91b6b && \
+    rm -rf /tmp/googlebenchmark-f91b6b/build-clang
 
 RUN rm -rf /tmp/googlebenchmark*
-
-# build/install boringssl
-RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
-    source /opt/rh/rh-python38/enable && \
-    source /opt/rh/rh-ruby27/enable && \
-    source /etc/profile.d/golang.sh && \
-    mkdir -p /opt/boringssl && \
-    cd /opt/boringssl && \
-    git clone https://boringssl.googlesource.com/boringssl . && \
-    git checkout 7ff871acbe1c58d142f089e228626e6a63ad5fe0 && \
-    for file in crypto/fipsmodule/rand/fork_detect_test.cc include/openssl/bn.h ssl/test/bssl_shim.cc; do \
-        perl -p -i -e 's/#include <inttypes.h>/#define __STDC_FORMAT_MACROS 1\n#include <inttypes.h>/g;' $file; \
-    done && \
-    perl -p -i -e 's/-Werror/-Werror -fPIC/' CMakeLists.txt && \
-    git diff && \
-    mkdir build && \
-    cd build && \
-    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release .. && \
-    ninja && \
-    ./ssl/ssl_test && \
-    mkdir -p /opt/boringssl/lib && \
-    cp crypto/libcrypto.a ssl/libssl.a /opt/boringssl/lib/
 
 # install doctest_proj to /opt
 # We use this in a header-only fashion, so there's no reason to compile it here.
@@ -796,7 +795,6 @@ RUN rm -f /root/anaconda-ks.cfg && \
     '' \
     'source $HOME/.cargo/env' \
     '' \
-    '# export OPENSSL_ROOT_DIR=/opt/boringssl'  \
     >> .bashrc
 
 # =========================== END OF LAYER: devel ==============================
