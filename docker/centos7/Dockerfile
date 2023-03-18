@@ -78,7 +78,6 @@ RUN sed -i -e 's/\*__block/\*__libc_block/g' /usr/include/unistd.h
 ENV DOCKER_BUCKET="download.docker.com" \
     DOCKER_CHANNEL="stable" \
     DIND_COMMIT="3b5fac462d21ca164b3778647420016315289034" \
-    DOCKER_COMPOSE_VERSION="1.26.0" \
     DOCKER_BUILDX_VERSION="v0.9.1"
 
 ENV DOCKER_VERSION="20.10.21"
@@ -88,13 +87,15 @@ VOLUME /var/lib/docker
 RUN set -ex \
     && if [ "$(uname -m)" == "aarch64" ]; then \
         DOCKER_SHA256="b4ceb6151d4dd1bfc7557f5fe0317e29cfcac91f798c34fae7dee891a811f8ee"; \
+        DOCKER_COMPOSE_VERSION="v2.16.0"; \
     else \
         DOCKER_SHA256="2582bed8772b283bda9d4565c0af76ee653c93d93dc6b8d0aad795d731a1bb81"; \
+        DOCKER_COMPOSE_VERSION="1.26.0"; \
     fi \
     && curl -fSLs "https://${DOCKER_BUCKET}/linux/static/${DOCKER_CHANNEL}/$(uname -m)/docker-${DOCKER_VERSION}.tgz" -o docker.tgz \
     && echo "${DOCKER_SHA256} *docker.tgz" | sha256sum --quiet -c - \
     && tar --extract --file docker.tgz --strip-components 1  --directory /usr/local/bin/ \
-    && rm docker.tgz \
+    && rm -f docker.tgz \
     && docker -v \
     # set up subuid/subgid so that "--userns-remap=default" works out-of-the-box
     && groupadd dockremap \
@@ -104,7 +105,7 @@ RUN set -ex \
     && curl -Ls "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" -o /usr/local/bin/dind \
     && curl -Ls https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose \
     && mkdir -p /usr/local/lib/docker/cli-plugins \
-    && curl -Ls https://github.com/docker/buildx/releases/download/${DOCKER_BUILDX_VERSION}/buildx-${DOCKER_BUILDX_VERSION}.$(uanme -s)-$(uname -m) -o /usr/local/lib/docker/cli-plugins/docker-buildx \
+    && curl -Ls https://github.com/docker/buildx/releases/download/${DOCKER_BUILDX_VERSION}/buildx-${DOCKER_BUILDX_VERSION}.$(uname -s)-$(uname -m) -o /usr/local/lib/docker/cli-plugins/docker-buildx \
     && chmod +x /usr/local/bin/dind /usr/local/bin/docker-compose /usr/local/lib/docker/cli-plugins/docker-buildx \
     && docker-compose version
 
