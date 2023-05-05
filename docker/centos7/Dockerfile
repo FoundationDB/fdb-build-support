@@ -595,7 +595,7 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
 
 RUN echo "Setup sphinx" && \
     source /opt/rh/rh-python38/enable && \
-    python3 -m pip install setuptools==65.3.0 sphinx-bootstrap-theme==0.8.1 docutils==0.19 sphinx==5.1.1 sphinx-autobuild Jinja2==3.1.2
+    python3 -m pip install setuptools==65.3.0 sphinx-bootstrap-theme==0.8.1 docutils==0.19 sphinx==5.1.1 sphinx-autobuild Jinja2==3.1.2 urllib3==2.0.2
 
 # =========================== END OF LAYER: build ==============================
 FROM build as devel
