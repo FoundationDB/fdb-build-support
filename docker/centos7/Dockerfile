@@ -720,6 +720,22 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
         rpm -ivh https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/foundationdb-clients-${FDB_VERSION}-1.el7.x86_64.rpm --excludepath=/etc/foundationdb --excludepath=/usr/bin --excludepath=/usr/lib --excludepath=/usr/lib64; \
     fi
 
+# Installing helm https://helm.sh/docs/intro/install for e2e testing with the operator.
+ARG HELM_VERSION="v3.12.0"
+RUN pushd /tmp && \
+    # Binaries and checksum are fetched from here: https://github.com/helm/helm/releases/tag/v3.12.0
+    if [ "$(uname -m)" == "aarch64" ]; then \
+        curl -sLo helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-arm64.tar.gz" && echo "658839fed8f9be2169f5df68e55cb2f0aa731a50df454caf183186766800bbd0 helm.tar.gz" | sha256sum --quiet -c -; \
+    else \
+        curl -sLo helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" && echo "da36e117d6dbc57c8ec5bab2283222fbd108db86c83389eebe045ad1ef3e2c3b helm.tar.gz" | sha256sum --quiet -c -; \
+    fi && \
+
+    tar -zxvf /tmp/helm.tar.gz && \
+    mv linux-*/helm /usr/local/bin/helm && \
+    helm version --short && \
+    popd && \
+    rm -rf /tmp/*
+
 WORKDIR /root
 # Pull in rust developer tools -- we use "nightly" for development
 # for extra warning messages and support for cargo fuzz
