@@ -378,9 +378,16 @@ RUN curl -Ls https://archive.apache.org/dist/maven/maven-3/3.8.3/binaries/apache
     echo '[ -x /opt/maven/bin/mvn ] && export PATH=/opt/maven/bin/:$PATH' >> /etc/profile.d/maven.sh && \
     rm -rf /tmp/*
 
-# install rocksdb to /opt
+# extract rocksdb 7 source to /opt
 RUN curl -Ls https://github.com/facebook/rocksdb/archive/refs/tags/v7.10.2.tar.gz -o rocksdb.tar.gz && \
     echo "4619ae7308cd3d11cdd36f0bfad3fb03a1ad399ca333f192b77b6b95b08e2f78 rocksdb.tar.gz" > rocksdb-sha.txt && \
+    sha256sum --quiet -c rocksdb-sha.txt && \
+    tar --directory /opt -xf rocksdb.tar.gz && \
+    rm -rf /tmp/*
+
+# extract rocksdb 8 source to /opt
+RUN curl -Ls https://github.com/facebook/rocksdb/archive/refs/tags/v8.1.1.tar.gz -o rocksdb.tar.gz && \
+    echo "9102704e169cfb53e7724a30750eeeb3e71307663852f01fa08d5a320e6155a8 rocksdb.tar.gz" > rocksdb-sha.txt && \
     sha256sum --quiet -c rocksdb-sha.txt && \
     tar --directory /opt -xf rocksdb.tar.gz && \
     rm -rf /tmp/*
