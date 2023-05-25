@@ -579,12 +579,12 @@ RUN echo "${SWIFT_WEBROOT}/latest-build.yml"
 # aarch64 package is not available for CentOS7
 # https://www.swift.org/download/
 RUN set -e; \
-    if [ "SWIFT_SPECIFIC_TOOLCHAIN" != "" ]; then \
-        export download="swift-DEVELOPMENT-SNAPSHOT-2023-05-22-a-centos7.tar.gz" && \
-        export download_signature="${download}.sig" && \
+    if [[ "${SWIFT_SPECIFIC_TOOLCHAIN}" != "" ]]; then \
+        export download="${SWIFT_SPECIFIC_TOOLCHAIN}" && \
+        export download_signature="${download}.sig"
     elif [ ! "$(uname -m)" == "aarch64" ]; then \
         export $(curl -Ls ${SWIFT_WEBROOT}/latest-build.yml | grep 'download:' | sed 's/:[^:\/\/]/=/g') && \
-        export $(curl -Ls ${SWIFT_WEBROOT}/latest-build.yml | grep 'download_signature:' | sed 's/:[^:\/\/]/=/g')  && \
+        export $(curl -Ls ${SWIFT_WEBROOT}/latest-build.yml | grep 'download_signature:' | sed 's/:[^:\/\/]/=/g')
     fi \
     export DOWNLOAD_DIR=$(echo $download | sed "s/-${OS_VER}.tar.gz//g") && \
     echo $DOWNLOAD_DIR > .swift_tag && \
