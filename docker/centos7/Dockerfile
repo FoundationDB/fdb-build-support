@@ -579,23 +579,26 @@ RUN echo "${SWIFT_WEBROOT}/latest-build.yml"
 # aarch64 package is not available for CentOS7
 # https://www.swift.org/download/
 RUN set -e; \
-    if [[ "${SWIFT_SPECIFIC_TOOLCHAIN}" != "" ]]; then \
-        export download="${SWIFT_SPECIFIC_TOOLCHAIN}" && \
-        export download_signature="${download}.sig"; \
-    elif [ ! "$(uname -m)" == "aarch64" ]; then \
-        export $(curl -Ls ${SWIFT_WEBROOT}/latest-build.yml | grep 'download:' | sed 's/:[^:\/\/]/=/g') && \
-        export $(curl -Ls ${SWIFT_WEBROOT}/latest-build.yml | grep 'download_signature:' | sed 's/:[^:\/\/]/=/g'); \
-    fi; \
-    export DOWNLOAD_DIR=$(echo $download | sed "s/-${OS_VER}.tar.gz//g") && \
-    echo $DOWNLOAD_DIR > .swift_tag && \
-    export GNUPGHOME="$(mktemp -d)" && \
-    curl -fLs ${SWIFT_WEBROOT}/${DOWNLOAD_DIR}/${download} -o latest_toolchain.tar.gz && \
-    curl -fLs ${SWIFT_WEBROOT}/${DOWNLOAD_DIR}/${download_signature} -o latest_toolchain.tar.gz.sig && \
-    curl -fLs https://swift.org/keys/all-keys.asc | gpg --import -  && \
-    gpg --batch --verify latest_toolchain.tar.gz.sig latest_toolchain.tar.gz && \
-    tar -xzf latest_toolchain.tar.gz --directory / --strip-components=1 && \
-    chmod -R o+r /usr/lib/swift && \
-    rm -rf "$GNUPGHOME" latest_toolchain.tar.gz.sig latest_toolchain.tar.gz;
+     if [[ "${SWIFT_SPECIFIC_TOOLCHAIN}" != "" ]]; then \
+         export download="${SWIFT_SPECIFIC_TOOLCHAIN}" && \
+         export download_signature="${download}.sig"; \
+     else \
+         export $(curl -Ls ${SWIFT_WEBROOT}/latest-build.yml | grep 'download:' | sed 's/:[^:\/\/]/=/g') && \
+         export $(curl -Ls ${SWIFT_WEBROOT}/latest-build.yml | grep 'download_signature:' | sed 's/:[^:\/\/]/=/g'); \
+     fi; \
+     if [ ! "$(uname -m)" == "aarch64" ]; then \
+       export DOWNLOAD_DIR=$(echo $download | sed "s/-${OS_VER}.tar.gz//g") && \
+       echo $DOWNLOAD_DIR > .swift_tag && \
+       export GNUPGHOME="$(mktemp -d)" && \
+       curl -fLs ${SWIFT_WEBROOT}/${DOWNLOAD_DIR}/${download} -o latest_toolchain.tar.gz && \
+       curl -fLs ${SWIFT_WEBROOT}/${DOWNLOAD_DIR}/${download_signature} -o latest_toolchain.tar.gz.sig && \
+       curl -fLs https://swift.org/keys/all-keys.asc | gpg --import -  && \
+       gpg --batch --verify latest_toolchain.tar.gz.sig latest_toolchain.tar.gz && \
+       tar -xzf latest_toolchain.tar.gz --directory / --strip-components=1 && \
+       chmod -R o+r /usr/lib/swift && \
+       rm -rf "$GNUPGHOME" latest_toolchain.tar.gz.sig latest_toolchain.tar.gz; \
+     fi
+
 
 # Print Installed Swift Version
 RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
