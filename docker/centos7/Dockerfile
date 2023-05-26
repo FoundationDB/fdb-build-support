@@ -581,11 +581,11 @@ RUN echo "${SWIFT_WEBROOT}/latest-build.yml"
 RUN set -e; \
     if [[ "${SWIFT_SPECIFIC_TOOLCHAIN}" != "" ]]; then \
         export download="${SWIFT_SPECIFIC_TOOLCHAIN}" && \
-        export download_signature="${download}.sig" \
+        export download_signature="${download}.sig"; \
     elif [ ! "$(uname -m)" == "aarch64" ]; then \
         export $(curl -Ls ${SWIFT_WEBROOT}/latest-build.yml | grep 'download:' | sed 's/:[^:\/\/]/=/g') && \
-        export $(curl -Ls ${SWIFT_WEBROOT}/latest-build.yml | grep 'download_signature:' | sed 's/:[^:\/\/]/=/g') \
-    fi \
+        export $(curl -Ls ${SWIFT_WEBROOT}/latest-build.yml | grep 'download_signature:' | sed 's/:[^:\/\/]/=/g'); \
+    fi; \
     export DOWNLOAD_DIR=$(echo $download | sed "s/-${OS_VER}.tar.gz//g") && \
     echo $DOWNLOAD_DIR > .swift_tag && \
     export GNUPGHOME="$(mktemp -d)" && \
@@ -595,7 +595,7 @@ RUN set -e; \
     gpg --batch --verify latest_toolchain.tar.gz.sig latest_toolchain.tar.gz && \
     tar -xzf latest_toolchain.tar.gz --directory / --strip-components=1 && \
     chmod -R o+r /usr/lib/swift && \
-    rm -rf "$GNUPGHOME" latest_toolchain.tar.gz.sig latest_toolchain.tar.gz
+    rm -rf "$GNUPGHOME" latest_toolchain.tar.gz.sig latest_toolchain.tar.gz;
 
 # Print Installed Swift Version
 RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
