@@ -78,7 +78,7 @@ RUN sed -i -e 's/\*__block/\*__libc_block/g' /usr/include/unistd.h
 ENV DOCKER_BUCKET="download.docker.com" \
     DOCKER_CHANNEL="stable" \
     DIND_COMMIT="3b5fac462d21ca164b3778647420016315289034" \
-    DOCKER_BUILDX_VERSION="v0.9.1"
+    DOCKER_BUILDX_VERSION="v0.10.5"
 
 ENV DOCKER_VERSION="20.10.21"
 
@@ -88,9 +88,11 @@ RUN set -ex \
     && if [ "$(uname -m)" == "aarch64" ]; then \
         DOCKER_SHA256="b4ceb6151d4dd1bfc7557f5fe0317e29cfcac91f798c34fae7dee891a811f8ee"; \
         DOCKER_COMPOSE_VERSION="v2.16.0"; \
+        DOCKER_BUILDX_URL="https://github.com/docker/buildx/releases/download/${DOCKER_BUILDX_VERSION}/buildx-${DOCKER_BUILDX_VERSION}.linux-$(uname -m)" ;\
     else \
         DOCKER_SHA256="2582bed8772b283bda9d4565c0af76ee653c93d93dc6b8d0aad795d731a1bb81"; \
         DOCKER_COMPOSE_VERSION="1.26.0"; \
+        DOCKER_BUILDX_URL="https://github.com/docker/buildx/releases/download/${DOCKER_BUILDX_VERSION}/buildx-${DOCKER_BUILDX_VERSION}.linux-amd64"; \
     fi \
     && curl -fSLs "https://${DOCKER_BUCKET}/linux/static/${DOCKER_CHANNEL}/$(uname -m)/docker-${DOCKER_VERSION}.tgz" -o docker.tgz \
     && echo "${DOCKER_SHA256} *docker.tgz" | sha256sum --quiet -c - \
@@ -105,9 +107,9 @@ RUN set -ex \
     && curl -Ls "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" -o /usr/local/bin/dind \
     && curl -Ls https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose \
     && mkdir -p /usr/local/lib/docker/cli-plugins \
-    && curl -Ls https://github.com/docker/buildx/releases/download/${DOCKER_BUILDX_VERSION}/buildx-${DOCKER_BUILDX_VERSION}.$(uname -s)-$(uname -m) -o /usr/local/lib/docker/cli-plugins/docker-buildx \
+    && curl -Ls "${DOCKER_BUILDX_URL}" -o /usr/local/lib/docker/cli-plugins/docker-buildx \
     && chmod +x /usr/local/bin/dind /usr/local/bin/docker-compose /usr/local/lib/docker/cli-plugins/docker-buildx \
-    && docker-compose version
+    && docker-compose version 
 
 # build/install lz4
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
@@ -718,7 +720,6 @@ RUN pushd /tmp && \
     else \
         curl -sLo helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" && echo "da36e117d6dbc57c8ec5bab2283222fbd108db86c83389eebe045ad1ef3e2c3b helm.tar.gz" | sha256sum --quiet -c -; \
     fi && \
-
     tar -zxvf /tmp/helm.tar.gz && \
     mv linux-*/helm /usr/local/bin/helm && \
     helm version --short && \
@@ -746,6 +747,11 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     tar --strip-components 1 --no-same-owner --directory .vscode-server/bin/latest -xf /tmp/vscode-server-linux-${VSCODE_ARCH}.tar.gz && \
     touch .vscode-server/bin/latest/0 && \
     rm -rf /tmp/*
+
+# TODO: To enable docker buildx as default builder by adding the following snippet to the config:
+#         "aliases": {
+#                 "builder": "buildx"
+#         }
 RUN rm -f /root/anaconda-ks.cfg && \
     printf '%s\n' \
     '#!/usr/bin/env bash' \
