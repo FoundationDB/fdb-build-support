@@ -109,7 +109,7 @@ RUN set -ex \
     && mkdir -p /usr/local/lib/docker/cli-plugins \
     && curl -Ls "${DOCKER_BUILDX_URL}" -o /usr/local/lib/docker/cli-plugins/docker-buildx \
     && chmod +x /usr/local/bin/dind /usr/local/bin/docker-compose /usr/local/lib/docker/cli-plugins/docker-buildx \
-    && docker-compose version 
+    && docker-compose version
 
 # build/install lz4
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
