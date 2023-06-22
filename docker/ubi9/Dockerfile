@@ -42,6 +42,7 @@ RUN set -ex \
 RUN dnf -y install \
         gcc-c++ \
         gcc \
+        iptables \
         unzip && \
     dnf clean all && \
     rm -rf /var/cache/dnf
