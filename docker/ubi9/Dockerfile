@@ -158,6 +158,90 @@ RUN pushd /tmp && \
 
 WORKDIR /root
 
+RUN rm -f /root/anaconda-ks.cfg && \
+    printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'set -Eeuo pipefail' \
+    '' \
+    'mkdir -p ~/.docker' \
+    'cat > ~/.docker/config.json << EOF' \
+    '{' \
+    ' "proxies":' \
+    ' {' \
+    '   "default":' \
+    '   {' \
+    '     "httpProxy": "${HTTP_PROXY}",' \
+    '     "httpsProxy": "${HTTPS_PROXY}",' \
+    '     "noProxy": "${NO_PROXY}"' \
+    '   }' \
+    ' }' \
+    '}' \
+    'EOF' \
+    > /usr/local/bin/docker_proxy.sh && \
+    chmod 755 /usr/local/bin/docker_proxy.sh && \
+    printf '%s\n' \
+    '' \
+    'function cmk_ci() {' \
+    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-7.10.2 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    ninja -v -C ${HOME}/build_output -j 84 all packages strip_targets' \
+    '}' \
+    'function cmk() {' \
+    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-7.10.2 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    ninja -C ${HOME}/build_output -j 84' \
+    '}' \
+    'function ccmk() {' \
+    '    CC=clang CXX=clang++ cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-7.10.2 -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
+    '    ninja -C ${HOME}/build_output -j 84' \
+    '}' \
+    'function ct() {' \
+    '    cd ${HOME}/build_output && ctest -j 32 --no-compress-output -T test --output-on-failure' \
+    '}' \
+    'function j() {' \
+    '   python3 -m joshua.joshua "${@}"' \
+    '}' \
+    'function jsd() {' \
+    '   j start --tarball $(find ${HOME}/build_output/packages -name correctness\*.tar.gz) "${@}"' \
+    '}' \
+    '' \
+    'function fmt() {' \
+    '   find ${HOME}/src/foundationdb -type f \( -name \*.c -o -name \*.cpp -o -name \*.h -o -name \*.hpp \) -a \( ! -name sqlite3.amalgamation.c \) -a \( ! -path \*.git\* \) -exec clang-format -style=file -i "{}" \;' \
+    '}' \
+    '' \
+    'USER_BASHRC="$HOME/src/.bashrc.local"' \
+    'if test -f "$USER_BASHRC"; then' \
+    '   source $USER_BASHRC' \
+    'fi' \
+    '' \
+    'function addr2line() {' \
+    '    EXECUTABLE=""' \
+    '    while getopts ":e:" OPTION' \
+    '    do' \
+    '            case "$OPTION" in' \
+    '                    e)' \
+    '                            EXECUTABLE="$OPTARG"' \
+    '                            ;;' \
+    '                    ?)' \
+    '                            ;;' \
+    '            esac' \
+    '    done' \
+    '    if [ -z $EXECUTABLE ]' \
+    '    then' \
+    '            echo "Missing executable"' \
+    '            exit 1' \
+    '    fi' \
+    '    readelf -p .comment $EXECUTABLE | grep -q "clang"' \
+    '    if [ $? -eq 0 ]' \
+    '    then' \
+    '            # This is a clang generated ELF' \
+    '            llvm-addr2line "$@"' \
+    '    else' \
+    '            # This is gcc/other compiler generated ELF' \
+    '            command addr2line "$@"' \
+    '    fi' \
+    '}' \
+    '' \
+    >> .bashrc
+
 # =========================== END OF LAYER: devel ==============================
 FROM build AS distcc
 
