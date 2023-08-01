@@ -199,15 +199,15 @@ RUN source /opt/rh/devtoolset-8/enable && \
     cd .. && \
     rm -rf /tmp/*
 
-# install golang 1.19
+# install golang 1.20
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
         GOLANG_ARCH="arm64"; \
-        GOLANG_SHA256="99de2fe112a52ab748fb175edea64b313a0c8d51d6157dba683a6be163fd5eab"; \
+        GOLANG_SHA256="4e15ab37556e979181a1a1cc60f6d796932223a0f5351d7c83768b356f84429b"; \
     else \
         GOLANG_ARCH="amd64"; \
-        GOLANG_SHA256="74b9640724fd4e6bb0ed2a1bc44ae813a03f1e72a4c76253e2d5c015494430ba"; \
+        GOLANG_SHA256="b945ae2bb5db01a0fb4786afde64e6fbab50b67f6fa0eb6cfa4924f16a7ff1eb"; \
     fi && \
-    curl -Ls https://golang.org/dl/go1.19.3.linux-${GOLANG_ARCH}.tar.gz -o golang.tar.gz && \
+    curl -Ls https://golang.org/dl/go1.20.6.linux-${GOLANG_ARCH}.tar.gz -o golang.tar.gz && \
     echo "${GOLANG_SHA256}  golang.tar.gz" > golang-sha.txt && \
     sha256sum --quiet -c golang-sha.txt && \
     tar --directory /usr/local -xf golang.tar.gz && \
@@ -218,8 +218,8 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     go install github.com/segmentio/golines@latest && \
     go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.9.2 && \
     go install sigs.k8s.io/kustomize/kustomize/v4@v4.5.2 && \
-    go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50.1 && \
-    go install github.com/goreleaser/goreleaser@v1.6.3 && \
+    go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.53.3 && \
+    go install github.com/goreleaser/goreleaser@v1.9.2 && \
     go install sigs.k8s.io/kind@v0.17.0 && \
     rm -rf /tmp/*
 
