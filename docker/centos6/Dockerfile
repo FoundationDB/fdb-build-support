@@ -223,6 +223,10 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     go install sigs.k8s.io/kind@v0.17.0 && \
     rm -rf /tmp/*
 
+# Workaround for https://tip.golang.org/doc/go1.20 using automatically a random seed. This breaks the go tuple test cases that uses
+# the random generator and expect the default seed to be 0.
+ENV GODEBUG=randautoseed=0
+
 # build/install boringssl
 RUN source /opt/rh/devtoolset-8/enable && \
     source /opt/rh/rh-python36/enable && \
