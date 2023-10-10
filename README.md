@@ -38,7 +38,7 @@ docker run -it foundationdb/build:centos7-latest /bin/bash
 Then, inside the container, you can run:
 
 ```shell
-source /opt/rh/devtoolset-8/enable
+source /opt/rh/devtoolset-11/enable
 source /opt/rh/rh-python38/enable
 source /opt/rh/rh-ruby27/enable
 
