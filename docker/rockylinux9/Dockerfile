@@ -386,7 +386,7 @@ RUN curl -Ls https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemall
     tar --strip-components 1 --no-same-owner --no-same-permissions --directory jemalloc -xjf jemalloc.tar.bz2 && \
     cd jemalloc && \
     ./configure --enable-static --disable-cxx --enable-prof && \
-    make && \
+    make -j32 && \
     make install && \
     cd ../ && \
     rm -rf /tmp/*
