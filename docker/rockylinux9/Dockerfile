@@ -7,7 +7,7 @@ RUN dnf -y update && \
         scl-utils \
         yum-utils
 
-RUN dnf install -y  --allowerasing \
+RUN dnf install -y  --enablerepo devel --allowerasing \
         autoconf \
         automake \
         binutils-devel \
@@ -40,8 +40,10 @@ RUN dnf install -y  --allowerasing \
         vim-enhanced \
         wget \
         zlib-devel \
+        fmt-devel \
         gcc-c++ \
         git \
+        libstdc++-static \
         libunwind \
         libunwind-devel \
         libxcrypt-compat \
