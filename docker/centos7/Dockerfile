@@ -398,6 +398,13 @@ RUN curl -Ls https://github.com/facebook/rocksdb/archive/refs/tags/v8.1.1.tar.gz
     tar --directory /opt -xf rocksdb.tar.gz && \
     rm -rf /tmp/*
 
+# extract rocksdb 8 source to /opt
+RUN curl -Ls https://github.com/facebook/rocksdb/archive/refs/tags/v8.6.7.tar.gz -o rocksdb.tar.gz && \
+    echo "cdb2fc3c6a556f20591f564cb8e023e56828469aa3f76e1d9535c443ba1f0c1a rocksdb.tar.gz" > rocksdb-sha.txt && \
+    sha256sum --quiet -c rocksdb-sha.txt && \
+    tar --directory /opt -xf rocksdb.tar.gz && \
+    rm -rf /tmp/*
+
 # install Boost to /opt
 # This used to pass --with-libraries=context,filesystem,iostreams,system,serialization
 # which doesn't build serialization (or builds it in a form that downstream cmake builds
