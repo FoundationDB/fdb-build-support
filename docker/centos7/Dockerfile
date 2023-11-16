@@ -559,14 +559,14 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
 RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/misc/junit/ctest2junit.xsl -o /opt/ctest2junit.xsl
 
 # Download Rust binaries
-ENV RUSTUP_VERSION=1.24.3 \
-    RUST_VERSION=1.59.0
+ENV RUSTUP_VERSION=1.26.0 \
+    RUST_VERSION=1.74.0
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
         RUST_ARCH="aarch64-unknown-linux-gnu"; \
-        RUST_SHA256="32a1532f7cef072a667bac53f1a5542c99666c4071af0c9549795bbdb2069ec1"; \
+        RUST_SHA256="673e336c81c65e6b16dcdede33f4cc9ed0f08bde1dbe7a935f113605292dc800"; \
     else \
         RUST_ARCH="x86_64-unknown-linux-gnu"; \
-        RUST_SHA256="3dc5ef50861ee18657f9db2eeb7392f9c2a6c95c90ab41e45ab4ca71476b4338"; \
+        RUST_SHA256="0b2f6c8f85a3d02fde2efc0ced4657869d73fccfce59defb4e8d29233116e6db"; \
     fi && \
     curl -LsO "https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/${RUST_ARCH}/rustup-init" && \
     echo "${RUST_SHA256}  rustup-init" > rustup-sha.txt && \
