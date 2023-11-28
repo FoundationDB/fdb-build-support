@@ -193,8 +193,8 @@ RUN curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-15.0
     rm -rf /tmp/*
 
 # build/install openssl
-RUN curl -Ls https://www.openssl.org/source/old/3.0/openssl-3.0.7.tar.gz -o openssl.tar.gz && \
-    echo "83049d042a260e696f62406ac5c08bf706fd84383f945cf21bd61e9ed95c396e  openssl.tar.gz" > openssl-sha.txt && \
+RUN curl -Ls https://www.openssl.org/source/openssl-1.1.1m.tar.gz -o openssl.tar.gz && \
+    echo "f89199be8b23ca45fc7cb9f1d8d3ee67312318286ad030f5316aca6462db6c96  openssl.tar.gz" > openssl-sha.txt && \
     sha256sum --quiet -c openssl-sha.txt && \
     mkdir openssl && \
     tar --strip-components 1 --no-same-owner --directory openssl -xf openssl.tar.gz && \
