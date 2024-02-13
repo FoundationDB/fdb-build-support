@@ -40,7 +40,6 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         vim-enhanced \
         wget \
         zlib-devel \
-        fmt-devel \
         gcc-c++ \
         git \
         libstdc++-static \
