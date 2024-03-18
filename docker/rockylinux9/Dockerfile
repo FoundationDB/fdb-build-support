@@ -703,23 +703,23 @@ RUN rm -f /root/anaconda-ks.cfg && \
     printf '%s\n' \
     '' \
     'function cmk_ci() {' \
-    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-8.10.0 -D BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
-    '    ninja -v -C ${HOME}/build_output -j 84 all packages strip_targets' \
+    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-8.10.0 -D BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
+    '    ninja -v -C ${HOME}/build_output -j 84 all packages strip_targets 2>&1 | tee ${HOME}/ninja.log' \
     '}' \
     'function cmk() {' \
-    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-8.10.0 -D BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
-    '    ninja -C ${HOME}/build_output -j 84' \
+    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-8.10.0 -D BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
+    '    ninja -C ${HOME}/build_output -j 84 2>&1 | tee ${HOME}/ninja.log' \
     '}' \
     'function ccmk_ci() {' \
-    '    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-8.10.0 -D BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
-    '    ninja -v -C ${HOME}/build_output -j 84 all packages strip_targets' \
+    '    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-8.10.0 -D BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
+    '    ninja -v -C ${HOME}/build_output -j 84 all packages strip_targets 2>&1 | tee ${HOME}/ninja.log' \
     '}' \
     'function ccmk() {' \
-    '    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-8.10.0 -D BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja && \' \
-    '    ninja -C ${HOME}/build_output -j 84' \
+    '    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-8.10.0 -D BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
+    '    ninja -v -C ${HOME}/build_output -j 84 2>&1 | tee ${HOME}/ninja.log' \
     '}' \
     'function ct() {' \
-    '    cd ${HOME}/build_output && ctest -j 32 --no-compress-output -T test --output-on-failure' \
+    '    cd ${HOME}/build_output && ctest -j 32 --no-compress-output -T test --output-on-failure 2>&1 | tee ${HOME}/ctest.log' \
     '}' \
     'function j() {' \
     '   python3 -m joshua.joshua "${@}"' \
