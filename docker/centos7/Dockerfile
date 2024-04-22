@@ -246,15 +246,15 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     cd .. && \
     rm -rf /tmp/*
 
-# install golang 1.20
+# install golang 1.22
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
         GOLANG_ARCH="arm64"; \
-        GOLANG_SHA256="4e15ab37556e979181a1a1cc60f6d796932223a0f5351d7c83768b356f84429b"; \
+        GOLANG_SHA256="36e720b2d564980c162a48c7e97da2e407dfcc4239e1e58d98082dfa2486a0c1"; \
     else \
         GOLANG_ARCH="amd64"; \
-        GOLANG_SHA256="b945ae2bb5db01a0fb4786afde64e6fbab50b67f6fa0eb6cfa4924f16a7ff1eb"; \
+        GOLANG_SHA256="5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17"; \
     fi && \
-    curl -Ls https://golang.org/dl/go1.20.6.linux-${GOLANG_ARCH}.tar.gz -o golang.tar.gz && \
+    curl -Ls https://golang.org/dl/go1.22.2.linux-${GOLANG_ARCH}.tar.gz -o golang.tar.gz && \
     echo "${GOLANG_SHA256}  golang.tar.gz" > golang-sha.txt && \
     sha256sum --quiet -c golang-sha.txt && \
     tar --directory /usr/local -xf golang.tar.gz && \
@@ -385,8 +385,8 @@ RUN curl -Ls https://archive.apache.org/dist/maven/maven-3/3.8.3/binaries/apache
     rm -rf /tmp/*
 
 # extract rocksdb 8 source to /opt
-RUN curl -Ls https://github.com/facebook/rocksdb/archive/refs/tags/v8.10.0.tar.gz -o rocksdb.tar.gz && \
-    echo "2dc107551cc864dbcf7908fdee96f2318cbb680df2b3fe1f85b0d545c2b5673b rocksdb.tar.gz" > rocksdb-sha.txt && \
+RUN curl -Ls https://github.com/facebook/rocksdb/archive/refs/tags/v8.11.4.tar.gz -o rocksdb.tar.gz && \
+    echo "1b84c7d7214360fd536349917c57ebd5030d5b4fc214a343ba628b0c6e3d2711 rocksdb.tar.gz" > rocksdb-sha.txt && \
     sha256sum --quiet -c rocksdb-sha.txt && \
     tar --directory /opt -xf rocksdb.tar.gz && \
     rm -rf /tmp/*
@@ -776,19 +776,19 @@ RUN rm -f /root/anaconda-ks.cfg && \
     'source /opt/rh/rh-ruby27/enable' \
     '' \
     'function cmk_ci() {' \
-    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-8.10.0 -D BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
+    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-8.11.4 -D BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
     '    ninja -v -C ${HOME}/build_output -j 84 all packages strip_targets 2>&1 | tee ${HOME}/ninja.log' \
     '}' \
     'function cmk() {' \
-    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-8.10.0 -D BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
+    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-8.11.4 -D BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
     '    ninja -C ${HOME}/build_output -j 84 2>&1 | tee ${HOME}/ninja.log' \
     '}' \
     'function ccmk_ci() {' \
-    '    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-8.10.0 -D BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
+    '    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-8.11.4 -D BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
     '    ninja -v -C ${HOME}/build_output -j 84 all packages strip_targets 2>&1 | tee ${HOME}/ninja.log' \
     '}' \
     'function ccmk() {' \
-    '    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-8.10.0 -D BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
+    '    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D RocksDB_ROOT=/opt/rocksdb-8.11.4 -D BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
     '    ninja -v -C ${HOME}/build_output -j 84 2>&1 | tee ${HOME}/ninja.log' \
     '}' \
     'function ct() {' \
