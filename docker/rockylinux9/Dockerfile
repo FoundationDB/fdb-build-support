@@ -219,13 +219,13 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     tar --directory /usr/local -xf golang.tar.gz && \
     echo '[ -x /usr/local/go/bin/go ] && export GOROOT=/usr/local/go && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
     source /etc/profile.d/golang.sh && \
-    go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.3 && \
+    go install github.com/onsi/ginkgo/v2/ginkgo@v2.9.7 && \
     go install golang.org/x/tools/cmd/goimports@latest && \
     go install github.com/segmentio/golines@latest && \
-    go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.9.2 && \
+    go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0 && \
     go install sigs.k8s.io/kustomize/kustomize/v4@v4.5.2 && \
-    go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.53.3 && \
-    go install github.com/goreleaser/goreleaser@v1.9.2 && \
+    go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2 && \
+    go install github.com/goreleaser/goreleaser@v1.20.0 && \
     go install sigs.k8s.io/kind@v0.17.0 && \
     rm -rf /tmp/*
 
