@@ -144,8 +144,8 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
 
 # build/install git
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
-    curl -Ls https://github.com/git/git/archive/v2.30.0.tar.gz -o git.tar.gz && \
-    echo "8db4edd1a0a74ebf4b78aed3f9e25c8f2a7db3c00b1aaee94d1e9834fae24e61  git.tar.gz" > git-sha.txt && \
+    curl -Ls https://github.com/git/git/archive/refs/tags/v2.45.1.tar.gz -o git.tar.gz && \
+    echo "d98c8f70d58f49f7546d59b25e25f2deae6999eb036a33b0fe6f5d07c33f67c6  git.tar.gz" > git-sha.txt && \
     sha256sum --quiet -c git-sha.txt && \
     mkdir git && \
     tar --strip-components 1 --no-same-owner --directory git -xf git.tar.gz && \

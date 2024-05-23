@@ -41,7 +41,6 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         wget \
         zlib-devel \
         gcc-c++ \
-        git \
         libstdc++-static \
         libunwind \
         libunwind-devel \
@@ -116,6 +115,20 @@ RUN curl -Ls https://github.com/axboe/liburing/archive/refs/tags/liburing-2.1.ta
     cd liburing && \
     ./configure && \
     make -j$(nproc) -C src V=1 CPPFLAGS="-Werror" CFLAGS="-g -O2 -Wall -Wextra -Werror" CXXFLAGS="-g -O2 -Wall -Wextra -Werror" && \
+    make install && \
+    cd ../ && \
+    rm -rf /tmp/*
+
+# build/install git
+RUN curl -Ls https://github.com/git/git/archive/refs/tags/v2.45.1.tar.gz -o git.tar.gz && \
+    echo "d98c8f70d58f49f7546d59b25e25f2deae6999eb036a33b0fe6f5d07c33f67c6  git.tar.gz" > git-sha.txt && \
+    sha256sum --quiet -c git-sha.txt && \
+    mkdir git && \
+    tar --strip-components 1 --no-same-owner --directory git -xf git.tar.gz && \
+    cd git && \
+    make configure && \
+    ./configure && \
+    make && \
     make install && \
     cd ../ && \
     rm -rf /tmp/*
