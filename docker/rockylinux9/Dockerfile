@@ -48,6 +48,7 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         perl-FindBin \
         perl-IPC-Cmd \
         perl-Pod-Html \
+        perl-lib \
         python3-devel \
         ruby && \
     dnf clean all && \
