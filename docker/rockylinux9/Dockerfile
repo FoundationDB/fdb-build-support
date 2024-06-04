@@ -1,4 +1,4 @@
-FROM rockylinux:9.2 as build
+FROM rockylinux:9.3 as build
 
 WORKDIR /tmp
 RUN dnf -y update && \
@@ -34,6 +34,7 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         mono-devel \
         pkg-config \
         rpm-build \
+        rsync \
         sqlite \
         tcl-devel \
         unzip \
