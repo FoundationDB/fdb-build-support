@@ -244,10 +244,6 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     go install sigs.k8s.io/kind@v0.17.0 && \
     rm -rf /tmp/*
 
-# Workaround for https://tip.golang.org/doc/go1.20 using automatically a random seed. This breaks the go tuple test cases that uses
-# the random generator and expect the default seed to be 0.
-ENV GODEBUG=randautoseed=0
-
 # build/install googlebenchmark
 # If you change this, then old versions of FDB will stop building in the resulting image.  If you need to support old and
 # new builds, then copy the below, and download / compile a second version with the newer SHA.  This needs to be kept in
