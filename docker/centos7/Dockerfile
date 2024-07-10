@@ -12,6 +12,11 @@ RUN sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo && \
 RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
         rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org && \
         yum -y install https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm && \
+        yum -y --enablerepo=elrepo-kernel install \
+        initscripts \
+        grubby \
+        perl \
+        linux-firmware && \
         rpm -ivh https://foundationdb-ci.s3.amazonaws.com/packages/kernel-lt-5.4.278-1.el7.elrepo.x86_64.rpm && \
         rpm -ivh https://foundationdb-ci.s3.amazonaws.com/packages/kernel-lt-devel-5.4.278-1.el7.elrepo.x86_64.rpm && \
         rpm -ivh https://foundationdb-ci.s3.amazonaws.com/packages/kernel-lt-headers-5.4.278-1.el7.elrepo.x86_64.rpm; \
