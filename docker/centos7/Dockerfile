@@ -609,6 +609,21 @@ RUN cd /tmp && \
     rm -rf /opt/boost_1_86_0_clang/libs && \
     rm -rf /tmp/*
 
+# install Boost to /opt, using gcc
+RUN cd /tmp && \
+    source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
+    source /opt/rh/rh-python38/enable && \
+    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
+    echo "1bed88e40401b2cb7a1f76d4bab499e352fa4d0c5f31c0dbae64e24d34d7513b  boost_1_86_0.tar.bz2" > boost-sha.txt && \
+    sha256sum --quiet -c boost-sha.txt && \
+    mkdir -p /opt/boost_1_86_0 && \
+    tar --strip-components 1 --no-same-owner --directory /opt/boost_1_86_0 -xjf boost_1_86_0.tar.bz2 && \
+    cd /opt/boost_1_86_0 && \
+    ./bootstrap.sh --with-libraries=all && \
+    ./b2 link=static cxxflags="-std=c++17 -fPIC" --prefix=/opt/boost_1_86_0 -j32 install &&\
+    rm -rf /opt/boost_1_86_0/libs && \
+    rm -rf /tmp/*
+
 
 # =========================== END OF LAYER: build ==============================
 FROM build as devel
