@@ -243,6 +243,7 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
         ../llvm && \
     cmake --build . && \
     cmake --build . --target install && \
+    cp /usr/local/include/x86_64-unknown-linux-gnu/c++/v1/__config_site /usr/local/include/c++/v1/__config_site && \
     cd ../.. && \
     rm -rf /tmp/*
 
@@ -532,8 +533,9 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     rm -rf /tmp/*
 
 # download old fdb binaries and client lib if not on aarch64
+# skip non-supported old versions:  6.2.30 6.2.29 6.2.28 6.2.27 6.2.26 6.2.25 6.2.24 6.2.23 6.2.22 6.2.21 6.2.20 6.2.19 6.2.18 6.2.17 6.2.16 6.2.15 6.2.10 6.1.13 6.1.12 6.1.11 6.1.10 6.0.18 6.0.17 6.0.16 6.0.15 6.0.14 5.2.8 5.2.7 5.1.7 5.1.6
 RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
-        for old_fdb_version in 7.1.23 7.1.19 7.0.0 6.3.23 6.3.22 6.3.18 6.3.17 6.3.16 6.3.15 6.3.13 6.3.12 6.3.9 6.2.30 6.2.29 6.2.28 6.2.27 6.2.26 6.2.25 6.2.24 6.2.23 6.2.22 6.2.21 6.2.20 6.2.19 6.2.18 6.2.17 6.2.16 6.2.15 6.2.10 6.1.13 6.1.12 6.1.11 6.1.10 6.0.18 6.0.17 6.0.16 6.0.15 6.0.14 5.2.8 5.2.7 5.1.7 5.1.6; do \
+        for old_fdb_version in 7.3.43 7.1.57 7.1.23 7.1.19 7.0.0 6.3.23 6.3.22 6.3.18 6.3.17 6.3.16 6.3.15 6.3.13 6.3.12 6.3.9; do \
             mkdir -p /opt/foundationdb/old/${old_fdb_version}/bin; \
             curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/fdbserver.x86_64 -o /opt/foundationdb/old/${old_fdb_version}/bin/fdbserver-${old_fdb_version}; \
             chmod +x /opt/foundationdb/old/${old_fdb_version}/bin/fdbserver-${old_fdb_version}; \
@@ -589,6 +591,25 @@ RUN echo "Setup sphinx" && \
     source /opt/rh/rh-python38/enable && \
     python3 -m pip install setuptools==65.3.0 sphinx-bootstrap-theme==0.8.1 docutils==0.19 sphinx==5.1.1 sphinx-autobuild Jinja2==3.1.2 urllib3==2.0.2
 
+# install Boost 1.86 to /opt, using clang to compile the library
+# Boost::context depends on some C++11 features, e.g. std::call_once; however,
+# gcc and clang are using different ABIs, thus a gcc-built Boost::context is
+# not linkable to clang objects.
+RUN cd /tmp && \
+    source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
+    source /opt/rh/rh-python38/enable && \
+    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
+    echo "1bed88e40401b2cb7a1f76d4bab499e352fa4d0c5f31c0dbae64e24d34d7513b  boost_1_86_0.tar.bz2" > boost-sha.txt && \
+    sha256sum --quiet -c boost-sha.txt && \
+    mkdir -p /opt/boost_1_86_0_clang && \
+    tar --strip-components 1 --no-same-owner --directory /opt/boost_1_86_0_clang -xjf boost_1_86_0.tar.bz2 && \
+    cd /opt/boost_1_86_0_clang && \
+    ./bootstrap.sh --with-toolset=clang --with-libraries=all && \
+    ./b2 link=static cxxflags="-std=c++17 -stdlib=libc++ -nostdlib++ -fPIC" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_86_0_clang -j32 install && \
+    rm -rf /opt/boost_1_86_0_clang/libs && \
+    rm -rf /tmp/*
+
+
 # =========================== END OF LAYER: build ==============================
 FROM build as devel
 
@@ -596,9 +617,7 @@ ARG DEVTOOLSET_VERSION=11
 
 # protobuf-compiler and protobuf-devel are used to generate reference data for some tests.
 
-RUN yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/repo/epel-7/carlwgeorge-ripgrep-epel-7.repo && \
-    yum repolist && \
-    yum -y install \
+RUN yum -y install \
         bash-completion \
         byobu \
         cgdb \
