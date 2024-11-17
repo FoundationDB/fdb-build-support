@@ -203,6 +203,7 @@ RUN curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-15.0
         ../llvm && \
     cmake --build . && \
     cmake --build . --target install && \
+    cp /usr/local/include/x86_64-unknown-linux-gnu/c++/v1/__config_site /usr/local/include/c++/v1/__config_site && \
     cd ../.. && \
     rm -rf /tmp/*
 
@@ -383,6 +384,35 @@ RUN curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/bo
     rm -rf /opt/boost_1_78_0_clang/libs && \
     rm -rf /tmp/*
 
+# install Boost 1.86 to /opt, using clang to compile the library
+# Boost::context depends on some C++11 features, e.g. std::call_once; however,
+# gcc and clang are using different ABIs, thus a gcc-built Boost::context is
+# not linkable to clang objects.
+RUN cd /tmp && \
+    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
+    echo "1bed88e40401b2cb7a1f76d4bab499e352fa4d0c5f31c0dbae64e24d34d7513b  boost_1_86_0.tar.bz2" > boost-sha.txt && \
+    sha256sum --quiet -c boost-sha.txt && \
+    mkdir -p /opt/boost_1_86_0_clang && \
+    tar --strip-components 1 --no-same-owner --directory /opt/boost_1_86_0_clang -xjf boost_1_86_0.tar.bz2 && \
+    cd /opt/boost_1_86_0_clang && \
+    ./bootstrap.sh --with-toolset=clang --with-libraries=all && \
+    ./b2 link=static cxxflags="-std=c++17 -stdlib=libc++ -nostdlib++ -fPIC" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_86_0_clang -j32 install && \
+    rm -rf /opt/boost_1_86_0_clang/libs && \
+    rm -rf /tmp/*
+
+# install Boost to /opt, using gcc
+RUN cd /tmp && \
+    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
+    echo "1bed88e40401b2cb7a1f76d4bab499e352fa4d0c5f31c0dbae64e24d34d7513b  boost_1_86_0.tar.bz2" > boost-sha.txt && \
+    sha256sum --quiet -c boost-sha.txt && \
+    mkdir -p /opt/boost_1_86_0 && \
+    tar --strip-components 1 --no-same-owner --directory /opt/boost_1_86_0 -xjf boost_1_86_0.tar.bz2 && \
+    cd /opt/boost_1_86_0 && \
+    ./bootstrap.sh --with-libraries=all && \
+    ./b2 link=static cxxflags="-std=c++17 -fPIC" --prefix=/opt/boost_1_86_0 -j32 install &&\
+    rm -rf /opt/boost_1_86_0/libs && \
+    rm -rf /tmp/*
+
 # jemalloc (needed for FDB after 6.3)
 RUN curl -Ls https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2 -o jemalloc.tar.bz2 && \
     echo "2db82d1e7119df3e71b7640219b6dfe84789bc0537983c3b7ac4f7189aecfeaa  jemalloc.tar.bz2" > jemalloc-sha.txt && \
@@ -478,7 +508,7 @@ RUN curl -Ls https://sourceware.org/pub/valgrind/valgrind-3.20.0.tar.bz2 -o valg
 
 # download old fdb binaries and client lib if not on aarch64
 RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
-        for old_fdb_version in 7.3.19 7.1.41 7.1.33 7.0.0 6.3.25 6.3.18; do \
+        for old_fdb_version in 7.3.43 7.1.57 7.1.41 7.1.33 7.0.0 6.3.25 6.3.18; do \
             mkdir -p /opt/foundationdb/old/${old_fdb_version}/bin; \
             curl -Ls https://github.com/apple/foundationdb/releases/download/${old_fdb_version}/fdbserver.x86_64 -o /opt/foundationdb/old/${old_fdb_version}/bin/fdbserver-${old_fdb_version}; \
             chmod +x /opt/foundationdb/old/${old_fdb_version}/bin/fdbserver-${old_fdb_version}; \
