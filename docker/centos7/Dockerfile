@@ -243,7 +243,7 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
         ../llvm && \
     cmake --build . && \
     cmake --build . --target install && \
-    cp /usr/local/include/x86_64-unknown-linux-gnu/c++/v1/__config_site /usr/local/include/c++/v1/__config_site && \
+    cp "/usr/local/include/$(uname -m)-unknown-linux-gnu/c++/v1/__config_site" /usr/local/include/c++/v1/__config_site && \
     cd ../.. && \
     rm -rf /tmp/*
 

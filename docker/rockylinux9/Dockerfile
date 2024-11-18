@@ -203,7 +203,7 @@ RUN curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-15.0
         ../llvm && \
     cmake --build . && \
     cmake --build . --target install && \
-    cp /usr/local/include/x86_64-unknown-linux-gnu/c++/v1/__config_site /usr/local/include/c++/v1/__config_site && \
+    cp "/usr/local/include/$(uname -m)-unknown-linux-gnu/c++/v1/__config_site" /usr/local/include/c++/v1/__config_site && \
     cd ../.. && \
     rm -rf /tmp/*
 
