@@ -148,11 +148,11 @@ RUN curl -Ls https://github.com/ninja-build/ninja/archive/refs/tags/v1.10.2.zip 
 
 # install cmake
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
-        CMAKE_SHA256="4a750db7becfa426a37f702fa87267e836dda6720f2b768e31828f4cb5e2e24b"; \
+        CMAKE_SHA256="e0f74862734c2d14ef8ac5a71941691531db0bbebee0a9c20a8e96e8a97390f9"; \
     else \
-        CMAKE_SHA256="b1dfd11d50e2dfb3d18be86ca1a369da1c1131badc14b659491dd42be1fed704"; \
+        CMAKE_SHA256="0fcb338b4515044f9ac77543550ac92c314c58f6f95aafcac5cd36aa75db6924"; \
     fi && \
-    curl -Ls https://github.com/Kitware/CMake/releases/download/v3.26.1/cmake-3.26.1-$(uname -s)-$(uname -m).tar.gz -o cmake.tar.gz && \
+    curl -Ls https://github.com/Kitware/CMake/releases/download/v3.31.0/cmake-3.31.0-$(uname -s)-$(uname -m).tar.gz -o cmake.tar.gz && \
     echo "${CMAKE_SHA256}  cmake.tar.gz" > cmake-sha.txt && \
     sha256sum --quiet -c cmake-sha.txt && \
     mkdir cmake && \
