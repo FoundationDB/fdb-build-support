@@ -557,6 +557,7 @@ RUN dnf repolist && \
     dnf --enablerepo devel install -y \
         protobuf-devel \
         protobuf-compiler \
+        grpc-devel \
         texinfo && \
     dnf -y install \
         bash-completion \
