@@ -666,6 +666,19 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     cd /tmp && \
     rm -rf /tmp/*
 
+# Install seaweedfs, an ersatz 's3' service, for s3 tests.
+RUN if [ "$(uname -m)" == "aarch64" ]; then \
+        curl -Ls https://github.com/seaweedfs/seaweedfs/releases/download/3.80/linux_arm64.tar.gz -o linux.tar.gz && \
+        curl -Ls https://github.com/seaweedfs/seaweedfs/releases/download/3.80/linux_arm64.tar.gz.md5 -o linux.tar.gz.md5 ; \
+    else \
+        curl -Ls https://github.com/seaweedfs/seaweedfs/releases/download/3.80/linux_amd64.tar.gz -o linux.tar.gz && \
+        curl -Ls https://github.com/seaweedfs/seaweedfs/releases/download/3.80/linux_amd64.tar.gz.md5 -o linux.tar.gz.md5 ; \
+    fi && \
+    md5sum --quiet -c linux.tar.gz.md5 && \
+    tar --no-same-owner --no-same-permissions --directory /usr/local/bin -xzf linux.tar.gz weed && \
+    cd /tmp && \
+    rm -rf /tmp/*
+
 # install fdb client lib for joshua
 ARG FDB_VERSION="6.3.18"
 RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
