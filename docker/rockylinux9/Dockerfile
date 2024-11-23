@@ -674,7 +674,7 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
         curl -Ls https://github.com/seaweedfs/seaweedfs/releases/download/3.80/linux_amd64.tar.gz -o linux.tar.gz && \
         curl -Ls https://github.com/seaweedfs/seaweedfs/releases/download/3.80/linux_amd64.tar.gz.md5 -o linux.tar.gz.md5 ; \
     fi && \
-    md5sum --quiet -c linux.tar.gz.md5 && \
+    echo "$(cat linux.tar.gz.md5) linux.tar.gz" | md5sum --quiet -c && \
     tar --no-same-owner --no-same-permissions --directory /usr/local/bin -xzf linux.tar.gz weed && \
     cd /tmp && \
     rm -rf /tmp/*
