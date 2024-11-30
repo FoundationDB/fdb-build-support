@@ -703,13 +703,14 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     ./aws/install && \
     rm -rf /tmp/*
 
+ENV SEAWEEDFS_VERSION=3.80
 # Install seaweedfs, an ersatz 's3' service, for s3 tests.
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
-        curl -Ls https://github.com/seaweedfs/seaweedfs/releases/download/3.80/linux_arm64.tar.gz -o linux.tar.gz && \
-        curl -Ls https://github.com/seaweedfs/seaweedfs/releases/download/3.80/linux_arm64.tar.gz.md5 -o linux.tar.gz.md5 ; \
+        curl -Ls https://github.com/seaweedfs/seaweedfs/releases/download/${SEAWEEDFS_VERSION}/linux_arm64.tar.gz -o linux.tar.gz && \
+        curl -Ls https://github.com/seaweedfs/seaweedfs/releases/download//${SEAWEEDFS_VERSION}/linux_arm64.tar.gz.md5 -o linux.tar.gz.md5 ; \
     else \
-        curl -Ls https://github.com/seaweedfs/seaweedfs/releases/download/3.80/linux_amd64.tar.gz -o linux.tar.gz && \
-        curl -Ls https://github.com/seaweedfs/seaweedfs/releases/download/3.80/linux_amd64.tar.gz.md5 -o linux.tar.gz.md5 ; \
+        curl -Ls https://github.com/seaweedfs/seaweedfs/releases/download//${SEAWEEDFS_VERSION}/linux_amd64.tar.gz -o linux.tar.gz && \
+        curl -Ls https://github.com/seaweedfs/seaweedfs/releases/download//${SEAWEEDFS_VERSION}/linux_amd64.tar.gz.md5 -o linux.tar.gz.md5 ; \
     fi && \
     echo "$(cat linux.tar.gz.md5) linux.tar.gz" | md5sum --quiet -c && \
     tar --no-same-owner --no-same-permissions --directory /usr/local/bin -xzf linux.tar.gz weed && \
