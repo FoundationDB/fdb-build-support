@@ -681,7 +681,7 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     rm -rf /tmp/*
 
 # install fdb client lib for joshua
-ARG FDB_VERSION="6.3.18"
+ARG FDB_VERSION="7.1.57"
 RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
         mkdir -p /usr/lib/foundationdb/plugins && \
         curl -Ls https://fdb-joshua.s3.amazonaws.com/old_tls_library.tgz | \
