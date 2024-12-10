@@ -345,11 +345,12 @@ RUN curl -Ls https://services.gradle.org/distributions/gradle-7.5.1-bin.zip -o g
     rm -rf /tmp/*
 
 # install maven
-RUN curl -Ls https://archive.apache.org/dist/maven/maven-3/3.8.3/binaries/apache-maven-3.8.3-bin.zip -o maven.zip && \
-    echo "f28cd38f620d76423c4543d5b443cdbdd5cfac2c511626cb92be3d5d273a6959  maven.zip" > maven-sha.txt && \
+ENV MAVEN_VERSION=3.9.9
+RUN curl -Ls https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.zip -o maven.zip && \
+    echo "4ec3f26fb1a692473aea0235c300bd20f0f9fe741947c82c1234cefd76ac3a3c  maven.zip" > maven-sha.txt && \
     sha256sum --quiet -c maven-sha.txt && \
     unzip -qq maven.zip && \
-    mv apache-maven-3.8.3 /opt/maven && \
+    mv apache-maven-${MAVEN_VERSION} /opt/maven && \
     echo '[ -x /opt/maven/bin/mvn ] && export PATH=/opt/maven/bin/:$PATH' >> /etc/profile.d/maven.sh && \
     rm -rf /tmp/*
 
