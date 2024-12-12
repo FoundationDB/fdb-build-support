@@ -11,8 +11,8 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         autoconf \
         automake \
         binutils-devel \
-        clang \
-        clang-tools-extra \
+        clang-18.1.8-3.el9 \
+        clang-tools-extra-18.1.8-3.el9 \
         curl \
         dos2unix \
         dpkg \
@@ -21,7 +21,7 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         gperftools-devel \
         gperftools-libs \
         ghostscript \
-        golang \
+        golang-1.22.7-2.el9_5 \
         gv \
         iptables \
         java-11-openjdk-devel \
@@ -34,8 +34,8 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         libuuid-devel \
         libxml2-devel \
         libxslt \
-        lld \
-        lldb \
+        lld-18.1.8-1.el9 \
+        lldb-18.1.8-1.el9 \
         mono-devel \
         pkg-config \
         rpm-build \
@@ -181,9 +181,11 @@ RUN curl -Ls https://www.openssl.org/source/openssl-1.1.1m.tar.gz -o openssl.tar
     rm -rf /tmp/*
 
 # install golang 1.22.7 packages
-RUN echo '[ -x /usr/bin/go ] && export GOROOT=/usr && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
+RUN echo '[ -x /usr/bin/go ] && export GOROOT=/usr/lib/golang && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
     source /etc/profile.d/golang.sh && \
-    go install github.com/onsi/ginkgo/v2/ginkgo@v2.9.7 && \
+    go env -w GOPROXY=https://proxy.golang.org,direct && \
+    go env -w GOSUMDB=sum.golang.org && \
+    go install github.com/onsi/ginkgo/v2/ginkgo@v2.22.0 && \
     go install golang.org/x/tools/cmd/goimports@latest && \
     go install github.com/segmentio/golines@latest && \
     go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0 && \
@@ -532,17 +534,17 @@ RUN dnf repolist && \
     rm -rf /var/cache/dnf
 
 # install byobu \
-    RUN curl -Ls https://launchpad.net/byobu/trunk/5.133/+download/byobu_5.133.orig.tar.gz -o byobu.tar.gz && \
-        echo "4d8ea48f8c059e56f7174df89b04a08c32286bae5a21562c5c6f61be6dab7563  byobu.tar.gz" > byobu-sha256.txt && \
-        sha256sum --quiet -c byobu-sha256.txt && \
-        mkdir byobu && \
-        tar --strip-components 1 --no-same-owner --directory byobu -xf byobu.tar.gz && \
-        cd byobu && \
-        ./configure --prefix=/usr/local && \
-        make && \
-        make install && \
-        cd ../ && \
-        rm -rf /tmp/*
+RUN curl -Ls https://launchpad.net/byobu/trunk/5.133/+download/byobu_5.133.orig.tar.gz -o byobu.tar.gz && \
+    echo "4d8ea48f8c059e56f7174df89b04a08c32286bae5a21562c5c6f61be6dab7563  byobu.tar.gz" > byobu-sha256.txt && \
+    sha256sum --quiet -c byobu-sha256.txt && \
+    mkdir byobu && \
+    tar --strip-components 1 --no-same-owner --directory byobu -xf byobu.tar.gz && \
+    cd byobu && \
+    ./configure --prefix=/usr/local && \
+    make && \
+    make install && \
+    cd ../ && \
+    rm -rf /tmp/*
 
 # install cgdb
 RUN curl -Ls https://github.com/cgdb/cgdb/archive/refs/tags/v0.8.0.tar.gz -o cgdb.tar.gz && \
