@@ -19,6 +19,7 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         gperftools-devel \
         gperftools-libs \
         ghostscript \
+        golang \
         gv \
         iptables \
         java-11-openjdk-devel \
@@ -38,6 +39,7 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         sqlite \
         tcl-devel \
         unzip \
+        valgrind \
         vim-enhanced \
         wget \
         zlib-devel \
@@ -221,19 +223,8 @@ RUN curl -Ls https://www.openssl.org/source/openssl-1.1.1m.tar.gz -o openssl.tar
     cd ../ && \
     rm -rf /tmp/*
 
-# install golang 1.22
-RUN if [ "$(uname -m)" == "aarch64" ]; then \
-        GOLANG_ARCH="arm64"; \
-        GOLANG_SHA256="36e720b2d564980c162a48c7e97da2e407dfcc4239e1e58d98082dfa2486a0c1"; \
-    else \
-        GOLANG_ARCH="amd64"; \
-        GOLANG_SHA256="5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17"; \
-    fi && \
-    curl -Ls https://golang.org/dl/go1.22.2.linux-${GOLANG_ARCH}.tar.gz -o golang.tar.gz && \
-    echo "${GOLANG_SHA256}  golang.tar.gz" > golang-sha.txt && \
-    sha256sum --quiet -c golang-sha.txt && \
-    tar --directory /usr/local -xf golang.tar.gz && \
-    echo '[ -x /usr/local/go/bin/go ] && export GOROOT=/usr/local/go && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
+# install golang 1.22.7 packages
+RUN echo '[ -x /usr/bin/go ] && export GOROOT=/usr && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
     source /etc/profile.d/golang.sh && \
     go install github.com/onsi/ginkgo/v2/ginkgo@v2.9.7 && \
     go install golang.org/x/tools/cmd/goimports@latest && \
@@ -242,8 +233,7 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     go install sigs.k8s.io/kustomize/kustomize/v4@v4.5.2 && \
     go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2 && \
     go install github.com/goreleaser/goreleaser@v1.20.0 && \
-    go install sigs.k8s.io/kind@v0.17.0 && \
-    rm -rf /tmp/*
+    go install sigs.k8s.io/kind@v0.17.0
 
 # build/install googlebenchmark
 # If you change this, then old versions of FDB will stop building in the resulting image.  If you need to support old and
@@ -494,19 +484,6 @@ RUN curl -Ls https://github.com/distcc/distcc/archive/refs/tags/v3.4.tar.gz -o d
     cd ../ && \
     rm -rf /tmp/*
 
-# valgrind
-RUN curl -Ls https://sourceware.org/pub/valgrind/valgrind-3.20.0.tar.bz2 -o valgrind.tar.bz2 && \
-    echo "8536c031dbe078d342f121fa881a9ecd205cb5a78e639005ad570011bdb9f3c6  valgrind.tar.bz2" > valgrind-sha.txt && \
-    sha256sum --quiet -c valgrind-sha.txt && \
-    mkdir valgrind && \
-    tar --strip-components 1 --no-same-owner --no-same-permissions --directory valgrind -xjf valgrind.tar.bz2 && \
-    cd valgrind && \
-    ./configure --enable-only64bit --enable-lto && \
-    make && \
-    make install && \
-    cd ../ && \
-    rm -rf /tmp/*
-
 # download old fdb binaries and client lib if not on aarch64
 RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
         for old_fdb_version in 7.3.43 7.1.57 7.1.41 7.1.33 7.0.0 6.3.25 6.3.18; do \
@@ -684,10 +661,6 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
 # install fdb client lib for joshua
 ARG FDB_VERSION="7.1.57"
 RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
-        mkdir -p /usr/lib/foundationdb/plugins && \
-        curl -Ls https://fdb-joshua.s3.amazonaws.com/old_tls_library.tgz | \
-            tar --strip-components=1 --no-same-owner --directory /usr/lib/foundationdb/plugins -xz && \
-        ln -sf /usr/lib/foundationdb/plugins/FDBGnuTLS.so /usr/lib/foundationdb/plugins/fdb-libressl-plugin.so && \
         curl -Ls https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/libfdb_c.x86_64.so -o /usr/lib64/libfdb_c_${FDB_VERSION}.so && \
         ln -sf /usr/lib64/libfdb_c_${FDB_VERSION}.so /usr/lib64/libfdb_c.so; \
     fi
