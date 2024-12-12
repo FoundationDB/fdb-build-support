@@ -11,6 +11,8 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         autoconf \
         automake \
         binutils-devel \
+        clang \
+        clang-tools-extra \
         curl \
         dos2unix \
         dpkg \
@@ -32,6 +34,8 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         libuuid-devel \
         libxml2-devel \
         libxslt \
+        lld \
+        lldb \
         mono-devel \
         pkg-config \
         rpm-build \
@@ -160,53 +164,6 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     mkdir cmake && \
     tar --strip-components 1 --no-same-owner --directory cmake -xf cmake.tar.gz && \
     cp -r cmake/* /usr/local/ && \
-    rm -rf /tmp/*
-
-# build/install LLVM
-# compiler-rt, libcxx and libcxxabi can't be built with gcc<11
-#     ref: https://libcxx.llvm.org/#platform-and-compiler-support)
-# so build and install clang first, then build other components and with clang
-# build clang a second time to pass component check
-RUN curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-15.0.6/llvm-project-15.0.6.src.tar.xz -o llvm.tar.xz && \
-    echo "9d53ad04dc60cb7b30e810faf64c5ab8157dadef46c8766f67f286238256ff92  llvm.tar.xz" > llvm-sha.txt && \
-    sha256sum --quiet -c llvm-sha.txt && \
-    mkdir llvm-project && \
-    tar --strip-components 1 --no-same-owner --directory llvm-project -xf llvm.tar.xz && \
-    cd llvm-project && \
-    mkdir -p build && \
-    cd build && \
-    cmake \
-        -DCMAKE_BUILD_TYPE=Release \
-        -G Ninja \
-        -Wno-dev \
-        -DLLVM_INCLUDE_EXAMPLES=OFF \
-        -DLLVM_INCLUDE_TESTS=OFF \
-        -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld;lldb" \
-        -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
-        -DCLANG_DEFAULT_PIE_ON_LINUX=OFF \
-        ../llvm && \
-    cmake --build . && \
-    cmake --build . --target install && \
-    cd ../ && \
-    rm -rf build && \
-    mkdir build && \
-    cd build && \
-    cmake \
-        -DCMAKE_BUILD_TYPE=Release \
-        -G Ninja \
-        -Wno-dev \
-        -DLLVM_INCLUDE_EXAMPLES=OFF \
-        -DLLVM_INCLUDE_TESTS=OFF \
-        -DLLVM_ENABLE_PROJECTS="clang;compiler-rt;libcxx;libcxxabi;libunwind" \
-        -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
-        -DCLANG_DEFAULT_PIE_ON_LINUX=OFF \
-        -DCMAKE_C_COMPILER=/usr/local/bin/clang \
-        -DCMAKE_CXX_COMPILER=/usr/local/bin/clang++ \
-        ../llvm && \
-    cmake --build . && \
-    cmake --build . --target install && \
-    cp "/usr/local/include/$(uname -m)-unknown-linux-gnu/c++/v1/__config_site" /usr/local/include/c++/v1/__config_site && \
-    cd ../.. && \
     rm -rf /tmp/*
 
 # build/install openssl
