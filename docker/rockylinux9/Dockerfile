@@ -11,11 +11,16 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         autoconf \
         automake \
         binutils-devel \
-        clang-18.1.8-3.el9 \
-        clang-tools-extra-18.1.8-3.el9 \
         curl \
+        coreutils-single \
         dos2unix \
         dpkg \
+        gcc-toolset-13-runtime-13.0-2.el9 \
+        gcc-toolset-13-libstdc++-devel-13.3.1-2.1.el9_4 \
+        gcc-toolset-13-binutils-gold-2.40-21.el9 \
+        gcc-toolset-13-binutils-2.40-21.el9 \
+        gcc-toolset-13-gcc-13.3.1-2.1.el9_4 \
+        gcc-toolset-13-gcc-c++-13.3.1-2.1.el9_4 \
         gettext-devel \
         gperftools \
         gperftools-devel \
@@ -34,8 +39,6 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         libuuid-devel \
         libxml2-devel \
         libxslt \
-        lld-18.1.8-1.el9 \
-        lldb-18.1.8-1.el9 \
         mono-devel \
         pkg-config \
         rpm-build \
@@ -166,6 +169,38 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     cp -r cmake/* /usr/local/ && \
     rm -rf /tmp/*
 
+# build/install LLVM 19.1.5
+ENV DEVTOOLSET_VERSION=13
+ENV LLVM_VERSION=19.1.5
+RUN source /opt/rh/gcc-toolset-${DEVTOOLSET_VERSION}/enable && \
+    curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/llvm-project-${LLVM_VERSION}.src.tar.xz -o llvm.tar.xz && \
+    echo "bd8445f554aae33d50d3212a15e993a667c0ad1b694ac1977f3463db3338e542  llvm.tar.xz" > llvm-sha.txt && \
+    sha256sum --quiet -c llvm-sha.txt && \
+    mkdir llvm-project && \
+    echo "bd8445f554aae33d50d3212a15e993a667c0ad1b694ac1977f3463db3338e542  llvm.tar.xz" > llvm-sha.txt \
+    sha256sum --quiet -c llvm-sha.txt && \
+    tar --strip-components 1 --no-same-owner --directory llvm-project -xf llvm.tar.xz && \
+    cd llvm-project && \
+    mkdir -p build && \
+    cd build && \
+    cmake \
+        -DCMAKE_BUILD_TYPE=Release \
+        -G Ninja \
+        -Wno-dev \
+        -DLLVM_INCLUDE_EXAMPLES=OFF \
+        -DLLVM_INCLUDE_TESTS=OFF \
+        -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld;lldb;compiler-rt" \
+        -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
+        -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
+        -DCLANG_DEFAULT_PIE_ON_LINUX=OFF \
+        ../llvm && \
+    cmake --build . && \
+    cmake --build . --target install && \
+    cd .. && \
+    cp "/usr/local/include/$(uname -m)-unknown-linux-gnu/c++/v1/__config_site" /usr/local/include/c++/v1/__config_site && \
+    cd /tmp && \
+    rm -rf /tmp/*
+
 # build/install openssl
 RUN curl -Ls https://www.openssl.org/source/openssl-1.1.1m.tar.gz -o openssl.tar.gz && \
     echo "f89199be8b23ca45fc7cb9f1d8d3ee67312318286ad030f5316aca6462db6c96  openssl.tar.gz" > openssl-sha.txt && \
@@ -209,11 +244,13 @@ RUN cd /tmp && \
     perl -p -i -e s/master/2fe3bd994b3189899d93f1d5a881e725e046fdc2/ cmake/GoogleTest.cmake.in
 
 # We disable regexp support for Clang because the system version of that library only works with GCC.
+# Link Python to Python3
 RUN GOOGLE_BENCHMARK_INSTALL_DIR_CLANG="/opt/googlebenchmark-f91b6b" && \
     mkdir -p ${GOOGLE_BENCHMARK_INSTALL_DIR_CLANG} && \
     cd /tmp/googlebenchmark-f91b6b && \
     mkdir -p /tmp/googlebenchmark-f91b6b/build-clang && \
-    cmake -DCMAKE_BUILD_TYPE=Release \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+	cmake -DCMAKE_BUILD_TYPE=Release \
         -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on \
         -DBENCHMARK_ENABLE_LTO=true \
         -DRUN_HAVE_STD_REGEX=0 \
@@ -246,7 +283,7 @@ RUN GOOGLE_BENCHMARK_INSTALL_DIR_GCC="/opt/googlebenchmark-f91b6b-g++" && \
     make -j 16 && \
     make install && \
     cd /tmp/googlebenchmark-f91b6b && \
-    rm -rf /tmp/googlebenchmark-f91b6b/build-clang
+    rm -rf /tmp/googlebenchmark-f91b6b/build-gcc
 
 RUN rm -rf /tmp/googlebenchmark*
 
@@ -314,22 +351,21 @@ RUN curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/bo
     mkdir -p /opt/boost_1_78_0 && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0 -xjf boost_1_78_0.tar.bz2 && \
     cd /opt/boost_1_78_0 && \
+    source /opt/rh/gcc-toolset-13/enable && \
     ./bootstrap.sh --with-libraries=all && \
-    ./b2 link=static cxxflags="-std=c++14 -fPIC" --prefix=/opt/boost_1_78_0 -j32 install &&\
+    ./b2 link=static cxxflags="-std=c++17 -fPIC" --prefix=/opt/boost_1_78_0 -j32 install &&\
     rm -rf /opt/boost_1_78_0/libs && \
     rm -rf /tmp/*
 
 # install Boost to /opt, using clang to compile the library
-# Boost::context depends on some C++11 features, e.g. std::call_once; however,
-# gcc and clang are using different ABIs, thus a gcc-built Boost::context is
-# not linkable to clang objects.
+# clang 18 generates errors when using all libraries, so we need to specify the libraries explicitly
 RUN curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
     echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
     mkdir -p /opt/boost_1_78_0_clang && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0_clang -xjf boost_1_78_0.tar.bz2 && \
     cd /opt/boost_1_78_0_clang && \
-    ./bootstrap.sh --with-toolset=clang --with-libraries=all && \
+    ./bootstrap.sh --with-toolset=clang --with-libraries=context,filesystem,iostreams,system,serialization && \
     ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++ -fPIC" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_78_0_clang -j32 install && \
     rm -rf /opt/boost_1_78_0_clang/libs && \
     rm -rf /tmp/*
@@ -358,22 +394,10 @@ RUN cd /tmp && \
     mkdir -p /opt/boost_1_86_0 && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_86_0 -xjf boost_1_86_0.tar.bz2 && \
     cd /opt/boost_1_86_0 && \
+    source /opt/rh/gcc-toolset-13/enable && \
     ./bootstrap.sh --with-libraries=all && \
     ./b2 link=static cxxflags="-std=c++17 -fPIC" --prefix=/opt/boost_1_86_0 -j32 install &&\
     rm -rf /opt/boost_1_86_0/libs && \
-    rm -rf /tmp/*
-
-# jemalloc (needed for FDB after 6.3)
-RUN curl -Ls https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2 -o jemalloc.tar.bz2 && \
-    echo "2db82d1e7119df3e71b7640219b6dfe84789bc0537983c3b7ac4f7189aecfeaa  jemalloc.tar.bz2" > jemalloc-sha.txt && \
-    sha256sum --quiet -c jemalloc-sha.txt && \
-    mkdir jemalloc && \
-    tar --strip-components 1 --no-same-owner --no-same-permissions --directory jemalloc -xjf jemalloc.tar.bz2 && \
-    cd jemalloc && \
-    ./configure --enable-static --disable-cxx --enable-prof && \
-    make -j32 && \
-    make install && \
-    cd ../ && \
     rm -rf /tmp/*
 
 # install jemalloc to /opt/jemalloc_5.3.0 (The FDB build no longer finds the above
@@ -461,9 +485,6 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
 RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/misc/junit/ctest2junit.xsl -o /opt/ctest2junit.xsl
 
 # Download swift binaries
-ARG SWIFT_SIGNING_KEY=8A7495662C3CD4AE18D95637FAF6989E1BC16FEA
-ENV SWIFT_SIGNING_KEY=$SWIFT_SIGNING_KEY
-
 RUN export DOWNLOAD_DIR="swift-5.9-RELEASE" && \
     echo $DOWNLOAD_DIR > .swift_tag && \
     GNUPGHOME="$(mktemp -d)"; export GNUPGHOME && \
