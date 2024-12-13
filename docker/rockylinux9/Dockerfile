@@ -177,8 +177,6 @@ RUN source /opt/rh/gcc-toolset-${DEVTOOLSET_VERSION}/enable && \
     echo "bd8445f554aae33d50d3212a15e993a667c0ad1b694ac1977f3463db3338e542  llvm.tar.xz" > llvm-sha.txt && \
     sha256sum --quiet -c llvm-sha.txt && \
     mkdir llvm-project && \
-    echo "bd8445f554aae33d50d3212a15e993a667c0ad1b694ac1977f3463db3338e542  llvm.tar.xz" > llvm-sha.txt \
-    sha256sum --quiet -c llvm-sha.txt && \
     tar --strip-components 1 --no-same-owner --directory llvm-project -xf llvm.tar.xz && \
     cd llvm-project && \
     mkdir -p build && \
