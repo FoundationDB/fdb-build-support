@@ -12,13 +12,21 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         automake \
         binutils-devel \
         curl \
+        coreutils-single \
         dos2unix \
         dpkg \
+        gcc-toolset-13-runtime-13.0-2.el9 \
+        gcc-toolset-13-libstdc++-devel-13.3.1-2.1.el9_4 \
+        gcc-toolset-13-binutils-gold-2.40-21.el9 \
+        gcc-toolset-13-binutils-2.40-21.el9 \
+        gcc-toolset-13-gcc-13.3.1-2.1.el9_4 \
+        gcc-toolset-13-gcc-c++-13.3.1-2.1.el9_4 \
         gettext-devel \
         gperftools \
         gperftools-devel \
         gperftools-libs \
         ghostscript \
+        golang-1.22.7-2.el9_5 \
         gv \
         iptables \
         java-11-openjdk-devel \
@@ -38,6 +46,7 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         sqlite \
         tcl-devel \
         unzip \
+        valgrind \
         vim-enhanced \
         wget \
         zlib-devel \
@@ -160,13 +169,12 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     cp -r cmake/* /usr/local/ && \
     rm -rf /tmp/*
 
-# build/install LLVM
-# compiler-rt, libcxx and libcxxabi can't be built with gcc<11
-#     ref: https://libcxx.llvm.org/#platform-and-compiler-support)
-# so build and install clang first, then build other components and with clang
-# build clang a second time to pass component check
-RUN curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-15.0.6/llvm-project-15.0.6.src.tar.xz -o llvm.tar.xz && \
-    echo "9d53ad04dc60cb7b30e810faf64c5ab8157dadef46c8766f67f286238256ff92  llvm.tar.xz" > llvm-sha.txt && \
+# build/install LLVM 19.1.5
+ENV DEVTOOLSET_VERSION=13
+ENV LLVM_VERSION=19.1.5
+RUN source /opt/rh/gcc-toolset-${DEVTOOLSET_VERSION}/enable && \
+    curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/llvm-project-${LLVM_VERSION}.src.tar.xz -o llvm.tar.xz && \
+    echo "bd8445f554aae33d50d3212a15e993a667c0ad1b694ac1977f3463db3338e542  llvm.tar.xz" > llvm-sha.txt && \
     sha256sum --quiet -c llvm-sha.txt && \
     mkdir llvm-project && \
     tar --strip-components 1 --no-same-owner --directory llvm-project -xf llvm.tar.xz && \
@@ -179,32 +187,16 @@ RUN curl -Ls https://github.com/llvm/llvm-project/releases/download/llvmorg-15.0
         -Wno-dev \
         -DLLVM_INCLUDE_EXAMPLES=OFF \
         -DLLVM_INCLUDE_TESTS=OFF \
-        -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld;lldb" \
+        -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld;lldb;compiler-rt" \
         -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
+        -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
         -DCLANG_DEFAULT_PIE_ON_LINUX=OFF \
         ../llvm && \
     cmake --build . && \
     cmake --build . --target install && \
-    cd ../ && \
-    rm -rf build && \
-    mkdir build && \
-    cd build && \
-    cmake \
-        -DCMAKE_BUILD_TYPE=Release \
-        -G Ninja \
-        -Wno-dev \
-        -DLLVM_INCLUDE_EXAMPLES=OFF \
-        -DLLVM_INCLUDE_TESTS=OFF \
-        -DLLVM_ENABLE_PROJECTS="clang;compiler-rt;libcxx;libcxxabi;libunwind" \
-        -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
-        -DCLANG_DEFAULT_PIE_ON_LINUX=OFF \
-        -DCMAKE_C_COMPILER=/usr/local/bin/clang \
-        -DCMAKE_CXX_COMPILER=/usr/local/bin/clang++ \
-        ../llvm && \
-    cmake --build . && \
-    cmake --build . --target install && \
+    cd .. && \
     cp "/usr/local/include/$(uname -m)-unknown-linux-gnu/c++/v1/__config_site" /usr/local/include/c++/v1/__config_site && \
-    cd ../.. && \
+    cd /tmp && \
     rm -rf /tmp/*
 
 # build/install openssl
@@ -221,29 +213,19 @@ RUN curl -Ls https://www.openssl.org/source/openssl-1.1.1m.tar.gz -o openssl.tar
     cd ../ && \
     rm -rf /tmp/*
 
-# install golang 1.22
-RUN if [ "$(uname -m)" == "aarch64" ]; then \
-        GOLANG_ARCH="arm64"; \
-        GOLANG_SHA256="36e720b2d564980c162a48c7e97da2e407dfcc4239e1e58d98082dfa2486a0c1"; \
-    else \
-        GOLANG_ARCH="amd64"; \
-        GOLANG_SHA256="5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17"; \
-    fi && \
-    curl -Ls https://golang.org/dl/go1.22.2.linux-${GOLANG_ARCH}.tar.gz -o golang.tar.gz && \
-    echo "${GOLANG_SHA256}  golang.tar.gz" > golang-sha.txt && \
-    sha256sum --quiet -c golang-sha.txt && \
-    tar --directory /usr/local -xf golang.tar.gz && \
-    echo '[ -x /usr/local/go/bin/go ] && export GOROOT=/usr/local/go && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
+# install golang 1.22.7 packages
+RUN echo '[ -x /usr/bin/go ] && export GOROOT=/usr/lib/golang && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
     source /etc/profile.d/golang.sh && \
-    go install github.com/onsi/ginkgo/v2/ginkgo@v2.9.7 && \
+    go env -w GOPROXY=https://proxy.golang.org,direct && \
+    go env -w GOSUMDB=sum.golang.org && \
+    go install github.com/onsi/ginkgo/v2/ginkgo@v2.22.0 && \
     go install golang.org/x/tools/cmd/goimports@latest && \
     go install github.com/segmentio/golines@latest && \
     go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0 && \
     go install sigs.k8s.io/kustomize/kustomize/v4@v4.5.2 && \
     go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2 && \
     go install github.com/goreleaser/goreleaser@v1.20.0 && \
-    go install sigs.k8s.io/kind@v0.17.0 && \
-    rm -rf /tmp/*
+    go install sigs.k8s.io/kind@v0.17.0
 
 # build/install googlebenchmark
 # If you change this, then old versions of FDB will stop building in the resulting image.  If you need to support old and
@@ -260,11 +242,13 @@ RUN cd /tmp && \
     perl -p -i -e s/master/2fe3bd994b3189899d93f1d5a881e725e046fdc2/ cmake/GoogleTest.cmake.in
 
 # We disable regexp support for Clang because the system version of that library only works with GCC.
+# Link Python to Python3
 RUN GOOGLE_BENCHMARK_INSTALL_DIR_CLANG="/opt/googlebenchmark-f91b6b" && \
     mkdir -p ${GOOGLE_BENCHMARK_INSTALL_DIR_CLANG} && \
     cd /tmp/googlebenchmark-f91b6b && \
     mkdir -p /tmp/googlebenchmark-f91b6b/build-clang && \
-    cmake -DCMAKE_BUILD_TYPE=Release \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+	cmake -DCMAKE_BUILD_TYPE=Release \
         -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on \
         -DBENCHMARK_ENABLE_LTO=true \
         -DRUN_HAVE_STD_REGEX=0 \
@@ -297,7 +281,7 @@ RUN GOOGLE_BENCHMARK_INSTALL_DIR_GCC="/opt/googlebenchmark-f91b6b-g++" && \
     make -j 16 && \
     make install && \
     cd /tmp/googlebenchmark-f91b6b && \
-    rm -rf /tmp/googlebenchmark-f91b6b/build-clang
+    rm -rf /tmp/googlebenchmark-f91b6b/build-gcc
 
 RUN rm -rf /tmp/googlebenchmark*
 
@@ -365,22 +349,21 @@ RUN curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/bo
     mkdir -p /opt/boost_1_78_0 && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0 -xjf boost_1_78_0.tar.bz2 && \
     cd /opt/boost_1_78_0 && \
+    source /opt/rh/gcc-toolset-13/enable && \
     ./bootstrap.sh --with-libraries=all && \
-    ./b2 link=static cxxflags="-std=c++14 -fPIC" --prefix=/opt/boost_1_78_0 -j32 install &&\
+    ./b2 link=static cxxflags="-std=c++17 -fPIC" --prefix=/opt/boost_1_78_0 -j32 install &&\
     rm -rf /opt/boost_1_78_0/libs && \
     rm -rf /tmp/*
 
 # install Boost to /opt, using clang to compile the library
-# Boost::context depends on some C++11 features, e.g. std::call_once; however,
-# gcc and clang are using different ABIs, thus a gcc-built Boost::context is
-# not linkable to clang objects.
+# clang 18 generates errors when using all libraries, so we need to specify the libraries explicitly
 RUN curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
     echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
     mkdir -p /opt/boost_1_78_0_clang && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0_clang -xjf boost_1_78_0.tar.bz2 && \
     cd /opt/boost_1_78_0_clang && \
-    ./bootstrap.sh --with-toolset=clang --with-libraries=all && \
+    ./bootstrap.sh --with-toolset=clang --with-libraries=context,filesystem,iostreams,system,serialization && \
     ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++ -fPIC" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_78_0_clang -j32 install && \
     rm -rf /opt/boost_1_78_0_clang/libs && \
     rm -rf /tmp/*
@@ -409,22 +392,10 @@ RUN cd /tmp && \
     mkdir -p /opt/boost_1_86_0 && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_86_0 -xjf boost_1_86_0.tar.bz2 && \
     cd /opt/boost_1_86_0 && \
+    source /opt/rh/gcc-toolset-13/enable && \
     ./bootstrap.sh --with-libraries=all && \
     ./b2 link=static cxxflags="-std=c++17 -fPIC" --prefix=/opt/boost_1_86_0 -j32 install &&\
     rm -rf /opt/boost_1_86_0/libs && \
-    rm -rf /tmp/*
-
-# jemalloc (needed for FDB after 6.3)
-RUN curl -Ls https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2 -o jemalloc.tar.bz2 && \
-    echo "2db82d1e7119df3e71b7640219b6dfe84789bc0537983c3b7ac4f7189aecfeaa  jemalloc.tar.bz2" > jemalloc-sha.txt && \
-    sha256sum --quiet -c jemalloc-sha.txt && \
-    mkdir jemalloc && \
-    tar --strip-components 1 --no-same-owner --no-same-permissions --directory jemalloc -xjf jemalloc.tar.bz2 && \
-    cd jemalloc && \
-    ./configure --enable-static --disable-cxx --enable-prof && \
-    make -j32 && \
-    make install && \
-    cd ../ && \
     rm -rf /tmp/*
 
 # install jemalloc to /opt/jemalloc_5.3.0 (The FDB build no longer finds the above
@@ -494,19 +465,6 @@ RUN curl -Ls https://github.com/distcc/distcc/archive/refs/tags/v3.4.tar.gz -o d
     cd ../ && \
     rm -rf /tmp/*
 
-# valgrind
-RUN curl -Ls https://sourceware.org/pub/valgrind/valgrind-3.20.0.tar.bz2 -o valgrind.tar.bz2 && \
-    echo "8536c031dbe078d342f121fa881a9ecd205cb5a78e639005ad570011bdb9f3c6  valgrind.tar.bz2" > valgrind-sha.txt && \
-    sha256sum --quiet -c valgrind-sha.txt && \
-    mkdir valgrind && \
-    tar --strip-components 1 --no-same-owner --no-same-permissions --directory valgrind -xjf valgrind.tar.bz2 && \
-    cd valgrind && \
-    ./configure --enable-only64bit --enable-lto && \
-    make && \
-    make install && \
-    cd ../ && \
-    rm -rf /tmp/*
-
 # download old fdb binaries and client lib if not on aarch64
 RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
         for old_fdb_version in 7.3.43 7.1.57 7.1.41 7.1.33 7.0.0 6.3.25 6.3.18; do \
@@ -525,9 +483,6 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
 RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/misc/junit/ctest2junit.xsl -o /opt/ctest2junit.xsl
 
 # Download swift binaries
-ARG SWIFT_SIGNING_KEY=8A7495662C3CD4AE18D95637FAF6989E1BC16FEA
-ENV SWIFT_SIGNING_KEY=$SWIFT_SIGNING_KEY
-
 RUN export DOWNLOAD_DIR="swift-5.9-RELEASE" && \
     echo $DOWNLOAD_DIR > .swift_tag && \
     GNUPGHOME="$(mktemp -d)"; export GNUPGHOME && \
@@ -598,17 +553,17 @@ RUN dnf repolist && \
     rm -rf /var/cache/dnf
 
 # install byobu \
-    RUN curl -Ls https://launchpad.net/byobu/trunk/5.133/+download/byobu_5.133.orig.tar.gz -o byobu.tar.gz && \
-        echo "4d8ea48f8c059e56f7174df89b04a08c32286bae5a21562c5c6f61be6dab7563  byobu.tar.gz" > byobu-sha256.txt && \
-        sha256sum --quiet -c byobu-sha256.txt && \
-        mkdir byobu && \
-        tar --strip-components 1 --no-same-owner --directory byobu -xf byobu.tar.gz && \
-        cd byobu && \
-        ./configure --prefix=/usr/local && \
-        make && \
-        make install && \
-        cd ../ && \
-        rm -rf /tmp/*
+RUN curl -Ls https://launchpad.net/byobu/trunk/5.133/+download/byobu_5.133.orig.tar.gz -o byobu.tar.gz && \
+    echo "4d8ea48f8c059e56f7174df89b04a08c32286bae5a21562c5c6f61be6dab7563  byobu.tar.gz" > byobu-sha256.txt && \
+    sha256sum --quiet -c byobu-sha256.txt && \
+    mkdir byobu && \
+    tar --strip-components 1 --no-same-owner --directory byobu -xf byobu.tar.gz && \
+    cd byobu && \
+    ./configure --prefix=/usr/local && \
+    make && \
+    make install && \
+    cd ../ && \
+    rm -rf /tmp/*
 
 # install cgdb
 RUN curl -Ls https://github.com/cgdb/cgdb/archive/refs/tags/v0.8.0.tar.gz -o cgdb.tar.gz && \
@@ -684,10 +639,6 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
 # install fdb client lib for joshua
 ARG FDB_VERSION="7.1.57"
 RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
-        mkdir -p /usr/lib/foundationdb/plugins && \
-        curl -Ls https://fdb-joshua.s3.amazonaws.com/old_tls_library.tgz | \
-            tar --strip-components=1 --no-same-owner --directory /usr/lib/foundationdb/plugins -xz && \
-        ln -sf /usr/lib/foundationdb/plugins/FDBGnuTLS.so /usr/lib/foundationdb/plugins/fdb-libressl-plugin.so && \
         curl -Ls https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/libfdb_c.x86_64.so -o /usr/lib64/libfdb_c_${FDB_VERSION}.so && \
         ln -sf /usr/lib64/libfdb_c_${FDB_VERSION}.so /usr/lib64/libfdb_c.so; \
     fi
