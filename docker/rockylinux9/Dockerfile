@@ -398,6 +398,19 @@ RUN cd /tmp && \
     rm -rf /opt/boost_1_86_0/libs && \
     rm -rf /tmp/*
 
+# jemalloc (needed for FDB after 6.3)
+RUN curl -Ls https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2 -o jemalloc.tar.bz2 && \
+    echo "2db82d1e7119df3e71b7640219b6dfe84789bc0537983c3b7ac4f7189aecfeaa  jemalloc.tar.bz2" > jemalloc-sha.txt && \
+    sha256sum --quiet -c jemalloc-sha.txt && \
+    mkdir jemalloc && \
+    tar --strip-components 1 --no-same-owner --no-same-permissions --directory jemalloc -xjf jemalloc.tar.bz2 && \
+    cd jemalloc && \
+    ./configure --enable-static --disable-cxx --enable-prof && \
+    make -j32 && \
+    make install && \
+    cd ../ && \
+    rm -rf /tmp/*
+
 # install jemalloc to /opt/jemalloc_5.3.0 (The FDB build no longer finds the above
 # one for some reason; also installing it system-wide makes it difficult to upgrade
 # the dependency without accidentally upgrading it for older FDB branches.)
@@ -531,8 +544,10 @@ RUN dnf repolist && \
         texinfo && \
     dnf -y install \
         bash-completion \
+        bind-utils \
         emacs-nox \
         fish \
+        gdb \
         htop \
         jq \
         libevent-devel \
@@ -543,6 +558,7 @@ RUN dnf repolist && \
         sysstat \
         the_silver_searcher \
         tree \
+        valgrind-devel \
         vim-enhanced \
         zsh \
         tmux \
@@ -753,7 +769,7 @@ RUN rm -f /root/anaconda-ks.cfg && \
     '    if [ -z $EXECUTABLE ]' \
     '    then' \
     '            echo "Missing executable"' \
-    '            exit 1' \
+    '            return' \
     '    fi' \
     '    readelf -p .comment $EXECUTABLE | grep -q "clang"' \
     '    if [ $? -eq 0 ]' \
