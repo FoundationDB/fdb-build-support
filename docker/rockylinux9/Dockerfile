@@ -26,7 +26,7 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         gperftools-devel \
         gperftools-libs \
         ghostscript \
-        golang-1.22.7-2.el9_5 \
+        golang-1.22.9-2.el9_5 \
         gv \
         iptables \
         java-11-openjdk-devel \
@@ -268,6 +268,7 @@ RUN GOOGLE_BENCHMARK_INSTALL_DIR_CLANG="/opt/googlebenchmark-f91b6b" && \
 RUN GOOGLE_BENCHMARK_INSTALL_DIR_GCC="/opt/googlebenchmark-f91b6b-g++" && \
     mkdir -p ${GOOGLE_BENCHMARK_INSTALL_DIR_GCC} && \
     cd /tmp/googlebenchmark-f91b6b && \
+    source /opt/rh/gcc-toolset-13/enable && \
     mkdir -p /tmp/googlebenchmark-f91b6b/build-gcc && \
     cmake -DCMAKE_BUILD_TYPE=Release \
         -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on \
@@ -343,7 +344,7 @@ RUN curl -Ls https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/bina
 # which doesn't build serialization (or builds it in a form that downstream cmake builds
 # cannot find).  Instead of debugging their build logic, we pass "all", which is simpler to
 # maintain and does build serialization.
-RUN curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
+RUN curl -Ls https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
     echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
     mkdir -p /opt/boost_1_78_0 && \
@@ -357,7 +358,7 @@ RUN curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/bo
 
 # install Boost to /opt, using clang to compile the library
 # clang 18 generates errors when using all libraries, so we need to specify the libraries explicitly
-RUN curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
+RUN curl -Ls https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
     echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
     mkdir -p /opt/boost_1_78_0_clang && \
@@ -373,7 +374,7 @@ RUN curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/bo
 # gcc and clang are using different ABIs, thus a gcc-built Boost::context is
 # not linkable to clang objects.
 RUN cd /tmp && \
-    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
+    curl -Ls https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
     echo "1bed88e40401b2cb7a1f76d4bab499e352fa4d0c5f31c0dbae64e24d34d7513b  boost_1_86_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
     mkdir -p /opt/boost_1_86_0_clang && \
@@ -386,7 +387,7 @@ RUN cd /tmp && \
 
 # install Boost to /opt, using gcc
 RUN cd /tmp && \
-    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
+    curl -Ls https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
     echo "1bed88e40401b2cb7a1f76d4bab499e352fa4d0c5f31c0dbae64e24d34d7513b  boost_1_86_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
     mkdir -p /opt/boost_1_86_0 && \
