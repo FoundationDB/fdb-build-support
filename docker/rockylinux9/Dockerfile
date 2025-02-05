@@ -496,6 +496,48 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
 
 RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/misc/junit/ctest2junit.xsl -o /opt/ctest2junit.xsl
 
+# Build and install gRPC and Protobuf.
+RUN cd /tmp && \
+    git clone --recurse-submodules -b v1.70.1 https://github.com/grpc/grpc.git ; \
+    mkdir -p /tmp/grpc/build/ && \
+    cd /tmp/grpc/build/ && \
+    CC=clang CXX=clang++ LD_LIBRARY_PATH=/usr/local/lib/$(uname -m)-unknown-linux-gnu/:$LD_LIBRARY_PATH \
+      cmake ../ \
+        -DCMAKE_INSTALL_PREFIX=/opt/grpc_clang/  \
+        -DCMAKE_C_COMPILER=clang \
+        -DCMAKE_CXX_COMPILER=clang++ \
+        -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
+        -DCMAKE_EXE_LINKER_FLAGS="-stdlib=libc++" \
+        -DgRPC_INSTALL=ON \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DBUILD_SHARED_LIBS=OFF \
+        -DgRPC_BUILD_TESTS=OFF \
+        -DgRPC_ABSL_PROVIDER=module \
+        -DgRPC_CARES_PROVIDER=module \
+        -DgRPC_PROTOBUF_PROVIDER=module \
+        -DgRPC_RE2_PROVIDER=module \
+        -DgRPC_SSL_PROVIDER=package \
+        -DgRPC_ZLIB_PROVIDER=package && \
+    CC=clang CXX=clang++ LD_LIBRARY_PATH=/usr/local/lib/$(uname -m)-unknown-linux-gnu/:$LD_LIBRARY_PATH \
+      make -j $(nproc) install && \
+    rm -rf /tmp/grpc/build && \
+    mkdir -p /tmp/grpc/build/ && \
+    cd /tmp/grpc/build/ && \
+    cmake ../ \
+      -DCMAKE_INSTALL_PREFIX=/opt/grpc/  \
+      -DgRPC_INSTALL=ON \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_SHARED_LIBS=OFF \
+      -DgRPC_BUILD_TESTS=OFF \
+      -DgRPC_ABSL_PROVIDER=module \
+      -DgRPC_CARES_PROVIDER=module \
+      -DgRPC_PROTOBUF_PROVIDER=module \
+      -DgRPC_RE2_PROVIDER=module \
+      -DgRPC_SSL_PROVIDER=package \
+      -DgRPC_ZLIB_PROVIDER=package && \
+    make -j $(nproc) install && \
+    rm -rf /tmp/*
+
 # Download swift binaries
 RUN export DOWNLOAD_DIR="swift-5.9-RELEASE" && \
     echo $DOWNLOAD_DIR > .swift_tag && \
