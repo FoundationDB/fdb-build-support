@@ -496,6 +496,51 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
 
 RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/misc/junit/ctest2junit.xsl -o /opt/ctest2junit.xsl
 
+# Build and install gRPC and Protobuf.
+RUN cd /tmp && \
+    git clone --recurse-submodules -b v1.70.1 https://github.com/grpc/grpc.git ; \
+    mkdir -p /tmp/grpc/build/ && \
+    cd /tmp/grpc/build/ && \
+    CC=clang CXX=clang++ \
+      cmake ../ \
+        -DCMAKE_INSTALL_PREFIX=/opt/grpc_clang/  \
+        -DCMAKE_C_COMPILER=clang \
+        -DCMAKE_CXX_COMPILER=clang++ \
+        -DCMAKE_LINKER=lld \
+        -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
+        -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld -static-libgcc -nostdlib++ -Wl,-Bstatic -lc++ -lc++abi -Wl,-Bdynamic" \
+        -DgRPC_INSTALL=ON \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DBUILD_SHARED_LIBS=OFF \
+        -DgRPC_BUILD_TESTS=OFF \
+        -DgRPC_ABSL_PROVIDER=module \
+        -DgRPC_CARES_PROVIDER=module \
+        -DgRPC_PROTOBUF_PROVIDER=module \
+        -DgRPC_RE2_PROVIDER=module \
+        -DgRPC_SSL_PROVIDER=package \
+        -DgRPC_ZLIB_PROVIDER=package && \
+    CC=clang CXX=clang++ make -j $(nproc) install && \
+    rm -rf /tmp/grpc/build && \
+    mkdir -p /tmp/grpc/build/ && \
+    cd /tmp/grpc/build/ && \
+    source /opt/rh/gcc-toolset-13/enable && \
+    cmake ../ \
+      -DCMAKE_INSTALL_PREFIX=/opt/grpc/  \
+      -DCMAKE_CXX_FLAGS="-static-libstdc++ -static-libgcc" \
+      -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc" \
+      -DgRPC_INSTALL=ON \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_SHARED_LIBS=OFF \
+      -DgRPC_BUILD_TESTS=OFF \
+      -DgRPC_ABSL_PROVIDER=module \
+      -DgRPC_CARES_PROVIDER=module \
+      -DgRPC_PROTOBUF_PROVIDER=module \
+      -DgRPC_RE2_PROVIDER=module \
+      -DgRPC_SSL_PROVIDER=package \
+      -DgRPC_ZLIB_PROVIDER=package && \
+    make -j $(nproc) install && \
+    rm -rf /tmp/*
+
 # Download swift binaries
 RUN export DOWNLOAD_DIR="swift-5.9-RELEASE" && \
     echo $DOWNLOAD_DIR > .swift_tag && \
@@ -539,9 +584,6 @@ WORKDIR /tmp
 
 RUN dnf repolist && \
     dnf --enablerepo devel install -y \
-        protobuf-devel \
-        protobuf-compiler \
-        grpc-devel \
         texinfo && \
     dnf -y install \
         bash-completion \
