@@ -501,13 +501,14 @@ RUN cd /tmp && \
     git clone --recurse-submodules -b v1.70.1 https://github.com/grpc/grpc.git ; \
     mkdir -p /tmp/grpc/build/ && \
     cd /tmp/grpc/build/ && \
-    CC=clang CXX=clang++ LD_LIBRARY_PATH=/usr/local/lib/$(uname -m)-unknown-linux-gnu/:$LD_LIBRARY_PATH \
+    CC=clang CXX=clang++ \
       cmake ../ \
         -DCMAKE_INSTALL_PREFIX=/opt/grpc_clang/  \
         -DCMAKE_C_COMPILER=clang \
         -DCMAKE_CXX_COMPILER=clang++ \
+        -DCMAKE_LINKER=lld \
         -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
-        -DCMAKE_EXE_LINKER_FLAGS="-stdlib=libc++" \
+        -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld -static-libgcc -nostdlib++ -Wl,-Bstatic -lc++ -lc++abi -Wl,-Bdynamic" \
         -DgRPC_INSTALL=ON \
         -DCMAKE_BUILD_TYPE=Release \
         -DBUILD_SHARED_LIBS=OFF \
@@ -518,13 +519,15 @@ RUN cd /tmp && \
         -DgRPC_RE2_PROVIDER=module \
         -DgRPC_SSL_PROVIDER=package \
         -DgRPC_ZLIB_PROVIDER=package && \
-    CC=clang CXX=clang++ LD_LIBRARY_PATH=/usr/local/lib/$(uname -m)-unknown-linux-gnu/:$LD_LIBRARY_PATH \
-      make -j $(nproc) install && \
+    CC=clang CXX=clang++ make -j $(nproc) install && \
     rm -rf /tmp/grpc/build && \
     mkdir -p /tmp/grpc/build/ && \
     cd /tmp/grpc/build/ && \
+    source /opt/rh/gcc-toolset-13/enable && \
     cmake ../ \
       -DCMAKE_INSTALL_PREFIX=/opt/grpc/  \
+      -DCMAKE_CXX_FLAGS="-static-libstdc++ -static-libgcc" \
+      -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc" \
       -DgRPC_INSTALL=ON \
       -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_SHARED_LIBS=OFF \
