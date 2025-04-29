@@ -5,9 +5,8 @@ RUN dnf -y update && \
     dnf install -y \
         epel-release \
         scl-utils \
-        yum-utils
-
-RUN dnf install -y  --enablerepo devel --allowerasing \
+        yum-utils && \
+    dnf install -y --enablerepo devel --allowerasing \
         autoconf \
         automake \
         binutils-devel \
@@ -15,12 +14,12 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         coreutils-single \
         dos2unix \
         dpkg \
-        gcc-toolset-13-runtime-13.0-2.el9 \
-        gcc-toolset-13-libstdc++-devel-13.3.1-2.1.el9_4 \
-        gcc-toolset-13-binutils-gold-2.40-21.el9 \
-        gcc-toolset-13-binutils-2.40-21.el9 \
-        gcc-toolset-13-gcc-13.3.1-2.1.el9_4 \
-        gcc-toolset-13-gcc-c++-13.3.1-2.1.el9_4 \
+        gcc-toolset-13-runtime-13.0 \
+        gcc-toolset-13-libstdc++-devel-13.3.1 \
+        gcc-toolset-13-binutils-gold-2.40 \
+        gcc-toolset-13-binutils-2.40\
+        gcc-toolset-13-gcc-13.3.1 \
+        gcc-toolset-13-gcc-c++-13.3.1 \
         gettext-devel \
         gperftools \
         gperftools-devel \
