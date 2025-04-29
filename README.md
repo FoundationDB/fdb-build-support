@@ -10,37 +10,37 @@ CI/CD system.
 ## How-to
 
 ### Build the images
+
 The Dockerfile(s) in this project are built to leverage [multi-stage builds](https://docs.docker.com/develop/develop-images/multistage-build/).
 To build the various images are built with commands like:
 
 ```shell
-cd docker/centos7
-docker build --tag foundationdb/build:centos7-latest --target build .
-docker build --tag foundationdb/devel:centos7-latest --target devel .
-docker build --tag foundationdb/distcc:centos7-latest --target distcc .
-docker build --tag foundationdb/codebuild:centos7-latest --target codebuild .
+cd docker/rockylinux9
+docker build --tag foundationdb/build:rockylinux9-latest --target build .
+docker build --tag foundationdb/devel:rockylinux9-latest --target devel .
+docker build --tag foundationdb/distcc:rockylinux9-latest --target distcc .
+docker build --tag foundationdb/codebuild:rockylinux9-latest --target codebuild .
 ```
 
 The `build` target contains the core dependencies and tools that are required to compile FoundationDB.
 The `devel` target is "FROM" the `build` image. It adds developer tools and other convenience packages.
 The `distcc` target is "FROM" the `build` image. It adds a distcc daemon to the images. This is used to run a [distcc](https://www.distcc.org) service. 
-The `codebuild` target is "FROM" the `devel` images. It us used in FoundationDB CI/CD. 
+The `codebuild` target is "FROM" the `devel` images. It us used in FoundationDB CI/CD.
 
 ### Build FoundationDB
+
 Here's an example on how to build FoundationDB using the [build image](https://hub.docker.com/r/foundationdb/build).
 First you need to run the container:
 
 ```shell
-docker pull foundationdb/build:centos7-latest
-docker run -it foundationdb/build:centos7-latest /bin/bash
+docker pull foundationdb/build:rockylinux9-latest
+docker run -it foundationdb/build:rockylinux9-latest /bin/bash
 ```
 
 Then, inside the container, you can run:
 
 ```shell
-source /opt/rh/devtoolset-11/enable
-source /opt/rh/rh-python38/enable
-source /opt/rh/rh-ruby27/enable
+source /opt/rh/gcc-toolset-13/enable
 
 mkdir -p src/foundationdb
 git clone https://github.com/apple/foundationdb.git src/foundationdb/ 
@@ -51,7 +51,8 @@ ninja -C build_output # If this crashes it probably ran out of memory. Try ninja
 ```
 
 ## Some Notes
+
 * The centos6 images are deprecated, and have fallen behind the centos7 images. The definitions are here, primarily, for posterity to see.
-* The centos7 images are the current active development environment. 
-* The centos8 images are an experiment at this time. They have not been vetted for active development, and with CentOS 8 being EOL at the beginning of 2022, this platform will have to shift to an alternative distribution. 
+* The centos7 images are deprecated, and have fallen behind the rockylinux9 images. The definitions are here, primarily, for posterity to see.
+* The rockylinux9 images are the current active development environment.
 * The windows images are maintained by the team at Doxense.

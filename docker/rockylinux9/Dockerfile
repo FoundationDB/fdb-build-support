@@ -1,13 +1,12 @@
-FROM rockylinux:9.3 as build
+FROM rockylinux:9.3 AS build
 
 WORKDIR /tmp
 RUN dnf -y update && \
     dnf install -y \
         epel-release \
         scl-utils \
-        yum-utils
-
-RUN dnf install -y  --enablerepo devel --allowerasing \
+        yum-utils && \
+    dnf install -y --enablerepo devel --allowerasing \
         autoconf \
         automake \
         binutils-devel \
@@ -15,18 +14,17 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
         coreutils-single \
         dos2unix \
         dpkg \
-        gcc-toolset-13-runtime-13.0-2.el9 \
-        gcc-toolset-13-libstdc++-devel-13.3.1-2.1.el9_4 \
-        gcc-toolset-13-binutils-gold-2.40-21.el9 \
-        gcc-toolset-13-binutils-2.40-21.el9 \
-        gcc-toolset-13-gcc-13.3.1-2.1.el9_4 \
-        gcc-toolset-13-gcc-c++-13.3.1-2.1.el9_4 \
+        gcc-toolset-13-runtime-13.0 \
+        gcc-toolset-13-libstdc++-devel-13.3.1 \
+        gcc-toolset-13-binutils-gold-2.40 \
+        gcc-toolset-13-binutils-2.40\
+        gcc-toolset-13-gcc-13.3.1 \
+        gcc-toolset-13-gcc-c++-13.3.1 \
         gettext-devel \
         gperftools \
         gperftools-devel \
         gperftools-libs \
         ghostscript \
-        golang-1.22.9-2.el9_5 \
         gv \
         iptables \
         java-11-openjdk-devel \
@@ -66,7 +64,6 @@ RUN dnf install -y  --enablerepo devel --allowerasing \
 
 # TODO: Is this really necessary?!? -- from swift's dockerfile
 RUN sed -i -e 's/\*__block/\*__libc_block/g' /usr/include/unistd.h
-
 
 # install docker 20
 ENV DOCKER_BUCKET="download.docker.com" \
@@ -213,8 +210,15 @@ RUN curl -Ls https://www.openssl.org/source/openssl-1.1.1m.tar.gz -o openssl.tar
     cd ../ && \
     rm -rf /tmp/*
 
-# install golang 1.22.7 packages
-RUN echo '[ -x /usr/bin/go ] && export GOROOT=/usr/lib/golang && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' >> /etc/profile.d/golang.sh && \
+ENV GO_VERSION="1.23.8"
+# install golang and the required golang packages
+RUN if [ "$(uname -m)" == "aarch64" ]; then \
+        curl -Ls "https://go.dev/dl/go${GO_VERSION}.linux-arm64.tar.gz" -o golang.tar.gz; \
+    else \
+        curl -Ls "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o golang.tar.gz; \
+    fi \
+    && tar -C /usr/local -xzf golang.tar.gz && \
+    echo '[ -x /usr/local/go/bin/go ] && export PATH=/usr/local/go/bin:$PATH' >> /etc/profile.d/golang.sh && \
     source /etc/profile.d/golang.sh && \
     go env -w GOPROXY=https://proxy.golang.org,direct && \
     go env -w GOSUMDB=sum.golang.org && \
@@ -223,7 +227,7 @@ RUN echo '[ -x /usr/bin/go ] && export GOROOT=/usr/lib/golang && export GOPATH=$
     go install github.com/segmentio/golines@latest && \
     go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0 && \
     go install sigs.k8s.io/kustomize/kustomize/v4@v4.5.2 && \
-    go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2 && \
+    go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.63.4 && \
     go install github.com/goreleaser/goreleaser@v1.20.0 && \
     go install sigs.k8s.io/kind@v0.17.0
 
@@ -578,7 +582,7 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     rm -rf /tmp/*
 
 # =========================== END OF LAYER: build ==============================
-FROM build as devel
+FROM build AS devel
 
 WORKDIR /tmp
 
@@ -832,7 +836,7 @@ RUN rm -f /root/anaconda-ks.cfg && \
     >> .bashrc
 
 # =========================== END OF LAYER: devel ==============================
-FROM build as distcc
+FROM build AS distcc
 
 RUN useradd distcc && \
     update-distcc-symlinks
@@ -854,7 +858,7 @@ ENTRYPOINT distccd \
            --jobs `nproc`
 
 # =========================== END OF LAYER: distcc =============================
-FROM devel as codebuild
+FROM devel AS codebuild
 
 COPY dockerd-entrypoint.sh /usr/local/bin/
 ENTRYPOINT ["dockerd-entrypoint.sh"]
