@@ -211,7 +211,7 @@ RUN curl -Ls https://www.openssl.org/source/openssl-1.1.1m.tar.gz -o openssl.tar
     rm -rf /tmp/*
 
 ENV GO_VERSION="1.23.8"
-# install golang and the requires golang packages
+# install golang and the required golang packages
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
         curl -Ls "https://go.dev/dl/go${GO_VERSION}.linux-arm64.tar.gz" -o golang.tar.gz; \
     else \
