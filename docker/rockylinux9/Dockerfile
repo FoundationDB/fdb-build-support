@@ -81,7 +81,7 @@ RUN set -ex \
         DOCKER_COMPOSE_VERSION="v2.16.0"; \
         DOCKER_BUILDX_URL="https://github.com/docker/buildx/releases/download/${DOCKER_BUILDX_VERSION}/buildx-${DOCKER_BUILDX_VERSION}.linux-$(uname -m)" ;\
     else \
-        DOCKER_SHA256="ff34bd799b5e4c3738a3b1a383cf4067c672add48c7203fcd003fcb0aacebc94s"; \
+        DOCKER_SHA256="ff34bd799b5e4c3738a3b1a383cf4067c672add48c7203fcd003fcb0aacebc94"; \
         DOCKER_COMPOSE_VERSION="1.26.0"; \
         DOCKER_BUILDX_URL="https://github.com/docker/buildx/releases/download/${DOCKER_BUILDX_VERSION}/buildx-${DOCKER_BUILDX_VERSION}.linux-amd64"; \
     fi \
