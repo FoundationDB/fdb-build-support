@@ -747,6 +747,9 @@ RUN rm -f /root/anaconda-ks.cfg && \
     'mkdir -p ~/.docker' \
     'cat > ~/.docker/config.json << EOF' \
     '{' \
+    ' "aliases": {' \
+    '   "builder": "buildx"' \
+    ' },' \
     ' "proxies":' \
     ' {' \
     '   "default":' \
