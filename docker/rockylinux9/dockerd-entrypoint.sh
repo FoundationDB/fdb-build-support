@@ -19,4 +19,8 @@ until docker info >/dev/null 2>&1; do
     sleep 1
 done
 
+# Set buildx as the default builder to ensure we use buildkit:
+# https://docs.docker.com/build/builders/
+docker buildx install
+
 eval "$@"

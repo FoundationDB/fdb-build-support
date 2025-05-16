@@ -69,19 +69,19 @@ RUN sed -i -e 's/\*__block/\*__libc_block/g' /usr/include/unistd.h
 ENV DOCKER_BUCKET="download.docker.com" \
     DOCKER_CHANNEL="stable" \
     DIND_COMMIT="3b5fac462d21ca164b3778647420016315289034" \
-    DOCKER_BUILDX_VERSION="v0.10.5"
+    DOCKER_BUILDX_VERSION="v0.23.0"
 
-ENV DOCKER_VERSION="20.10.21"
+ENV DOCKER_VERSION="28.1.1"
 
 VOLUME /var/lib/docker
 
 RUN set -ex \
     && if [ "$(uname -m)" == "aarch64" ]; then \
-        DOCKER_SHA256="b4ceb6151d4dd1bfc7557f5fe0317e29cfcac91f798c34fae7dee891a811f8ee"; \
+        DOCKER_SHA256="836bbaea204251922ec4dc79dbe81e323ccedaa726efc01f62683f547d721871"; \
         DOCKER_COMPOSE_VERSION="v2.16.0"; \
         DOCKER_BUILDX_URL="https://github.com/docker/buildx/releases/download/${DOCKER_BUILDX_VERSION}/buildx-${DOCKER_BUILDX_VERSION}.linux-$(uname -m)" ;\
     else \
-        DOCKER_SHA256="2582bed8772b283bda9d4565c0af76ee653c93d93dc6b8d0aad795d731a1bb81"; \
+        DOCKER_SHA256="ff34bd799b5e4c3738a3b1a383cf4067c672add48c7203fcd003fcb0aacebc94s"; \
         DOCKER_COMPOSE_VERSION="1.26.0"; \
         DOCKER_BUILDX_URL="https://github.com/docker/buildx/releases/download/${DOCKER_BUILDX_VERSION}/buildx-${DOCKER_BUILDX_VERSION}.linux-amd64"; \
     fi \
@@ -739,10 +739,6 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     touch .vscode-server/bin/latest/0 && \
     rm -rf /tmp/*
 
-# TODO: To enable docker buildx as default builder by adding the following snippet to the config:
-#         "aliases": {
-#                 "builder": "buildx"
-#         }
 RUN rm -f /root/anaconda-ks.cfg && \
     printf '%s\n' \
     '#!/usr/bin/env bash' \
