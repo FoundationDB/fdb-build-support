@@ -549,7 +549,7 @@ RUN cd /tmp && \
 RUN export DOWNLOAD_DIR="swift-5.9-RELEASE" && \
     echo $DOWNLOAD_DIR > .swift_tag && \
     GNUPGHOME="$(mktemp -d)"; export GNUPGHOME && \
-    curl -fLs https://swift.org/keys/all-keys.asc | gpg --import -  && \
+    curl --compressed -fLs https://swift.org/keys/all-keys.asc | gpg --import -  && \
     if [ "$(uname -m)" == "aarch64" ]; then \
         curl -fLs https://download.swift.org/swift-5.9-release/ubi9-aarch64/swift-5.9-RELEASE/swift-5.9-RELEASE-ubi9-aarch64.tar.gz     -o latest_toolchain.tar.gz ; \
         curl -fLs https://download.swift.org/swift-5.9-release/ubi9-aarch64/swift-5.9-RELEASE/swift-5.9-RELEASE-ubi9-aarch64.tar.gz.sig -o latest_toolchain.tar.gz.sig ; \
