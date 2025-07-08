@@ -210,8 +210,8 @@ RUN curl -Ls https://www.openssl.org/source/openssl-1.1.1m.tar.gz -o openssl.tar
     cd ../ && \
     rm -rf /tmp/*
 
-ENV GO_VERSION="1.23.8"
-# install golang and the required golang packages
+ENV GO_VERSION="1.24.4"
+# Install golang
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
         curl -Ls "https://go.dev/dl/go${GO_VERSION}.linux-arm64.tar.gz" -o golang.tar.gz; \
     else \
@@ -221,15 +221,7 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     echo '[ -x /usr/local/go/bin/go ] && export PATH=/usr/local/go/bin:$PATH' >> /etc/profile.d/golang.sh && \
     source /etc/profile.d/golang.sh && \
     go env -w GOPROXY=https://proxy.golang.org,direct && \
-    go env -w GOSUMDB=sum.golang.org && \
-    go install github.com/onsi/ginkgo/v2/ginkgo@v2.22.0 && \
-    go install golang.org/x/tools/cmd/goimports@latest && \
-    go install github.com/segmentio/golines@latest && \
-    go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0 && \
-    go install sigs.k8s.io/kustomize/kustomize/v4@v4.5.2 && \
-    go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.63.4 && \
-    go install github.com/goreleaser/goreleaser@v1.20.0 && \
-    go install sigs.k8s.io/kind@v0.17.0
+    go env -w GOSUMDB=sum.golang.org
 
 # build/install googlebenchmark
 # If you change this, then old versions of FDB will stop building in the resulting image.  If you need to support old and
