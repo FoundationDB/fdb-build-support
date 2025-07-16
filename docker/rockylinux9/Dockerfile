@@ -58,7 +58,8 @@ RUN dnf -y update && \
         perl-Pod-Html \
         perl-lib \
         python3-devel \
-        ruby && \
+        ruby \
+	tidy && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
@@ -756,6 +757,10 @@ RUN rm -f /root/anaconda-ks.cfg && \
     > /usr/local/bin/docker_proxy.sh && \
     chmod 755 /usr/local/bin/docker_proxy.sh && \
     printf '%s\n' \
+    '' \
+    '# WARNING: THIS .bashrc WILL GET CLOBBERED PERIODICALLY BY OKTETO.  DO NOT EDIT.' \
+    '# INSTEAD, EDIT ~/src/.bashrc.local .  SEE BELOW FOR HOW THAT IS USED.' \
+    '# IF YOU NEED TO UPDATE THIS FILE, FORK https://github.com/FoundationDB/fdb-build-support.' \
     '' \
     'function cmk_ci() {' \
     '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D  BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
