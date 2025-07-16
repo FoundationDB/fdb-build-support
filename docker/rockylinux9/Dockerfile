@@ -58,7 +58,8 @@ RUN dnf -y update && \
         perl-Pod-Html \
         perl-lib \
         python3-devel \
-        ruby && \
+        ruby \
+	tidy && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
