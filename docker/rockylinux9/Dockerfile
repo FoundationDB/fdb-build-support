@@ -539,16 +539,16 @@ RUN cd /tmp && \
     rm -rf /tmp/*
 
 # Download swift binaries
-RUN export DOWNLOAD_DIR="swift-5.9-RELEASE" && \
+RUN export DOWNLOAD_DIR="swift-6.1-RELEASE" && \
     echo $DOWNLOAD_DIR > .swift_tag && \
     GNUPGHOME="$(mktemp -d)"; export GNUPGHOME && \
     curl --compressed -fLs https://swift.org/keys/all-keys.asc | gpg --import -  && \
     if [ "$(uname -m)" == "aarch64" ]; then \
-        curl -fLs https://download.swift.org/swift-5.9-release/ubi9-aarch64/swift-5.9-RELEASE/swift-5.9-RELEASE-ubi9-aarch64.tar.gz     -o latest_toolchain.tar.gz ; \
-        curl -fLs https://download.swift.org/swift-5.9-release/ubi9-aarch64/swift-5.9-RELEASE/swift-5.9-RELEASE-ubi9-aarch64.tar.gz.sig -o latest_toolchain.tar.gz.sig ; \
+        curl -fLs https://download.swift.org/swift-6.1-release/ubi9-aarch64/swift-6.1-RELEASE/swift-6.1-RELEASE-ubi9-aarch64.tar.gz     -o latest_toolchain.tar.gz ; \
+        curl -fLs https://download.swift.org/swift-6.1-release/ubi9-aarch64/swift-6.1-RELEASE/swift-6.1-RELEASE-ubi9-aarch64.tar.gz.sig -o latest_toolchain.tar.gz.sig ; \
     else \
-        curl -fLs https://download.swift.org/swift-5.9-release/ubi9/swift-5.9-RELEASE/swift-5.9-RELEASE-ubi9.tar.gz     -o latest_toolchain.tar.gz ; \
-        curl -fLs https://download.swift.org/swift-5.9-release/ubi9/swift-5.9-RELEASE/swift-5.9-RELEASE-ubi9.tar.gz.sig -o latest_toolchain.tar.gz.sig ; \
+        curl -fLs https://download.swift.org/swift-6.1-release/ubi9/swift-6.1-RELEASE/swift-6.1-RELEASE-ubi9.tar.gz     -o latest_toolchain.tar.gz ; \
+        curl -fLs https://download.swift.org/swift-6.1-release/ubi9/swift-6.1-RELEASE/swift-6.1-RELEASE-ubi9.tar.gz.sig -o latest_toolchain.tar.gz.sig ; \
     fi && \
     gpg --batch --verify latest_toolchain.tar.gz.sig latest_toolchain.tar.gz && \
     tar -xzf latest_toolchain.tar.gz --directory / --strip-components=1 && \
