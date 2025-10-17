@@ -1,7 +1,10 @@
-FROM rockylinux:9.3 AS build
+FROM docker.io/rockylinux/rockylinux:9.6 AS build
 
 WORKDIR /tmp
-RUN dnf -y update && \
+# Disable the faulty mirror list for RockyLinux for now. Since all the other images use the base image
+# as base we don't have to repeat this step.
+RUN sed -i.bak 's/^#baseurl=/baseurl=/; s/^mirrorlist=/#mirrorlist=/' /etc/yum.repos.d/rocky.repo && \
+    dnf -y update && \
     dnf install -y \
         epel-release \
         scl-utils \
@@ -211,7 +214,7 @@ RUN curl -Ls https://www.openssl.org/source/openssl-1.1.1m.tar.gz -o openssl.tar
     cd ../ && \
     rm -rf /tmp/*
 
-ENV GO_VERSION="1.24.4"
+ENV GO_VERSION="1.24.9"
 # Install golang
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
         curl -Ls "https://go.dev/dl/go${GO_VERSION}.linux-arm64.tar.gz" -o golang.tar.gz; \
