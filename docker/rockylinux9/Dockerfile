@@ -496,6 +496,10 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
 
 RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/misc/junit/ctest2junit.xsl -o /opt/ctest2junit.xsl
 
+# Add repro.sh script for generating test reproduction commands
+COPY repro.sh /usr/local/bin/repro.sh
+RUN chmod +x /usr/local/bin/repro.sh
+
 # Build and install gRPC and Protobuf.
 RUN cd /tmp && \
     git clone --recurse-submodules -b v1.70.1 https://github.com/grpc/grpc.git ; \
