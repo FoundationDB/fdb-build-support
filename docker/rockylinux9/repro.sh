@@ -21,7 +21,7 @@ while read -r line; do
     fi
   done
   if [[ -n "$testfile" && -n "$randomseed" ]]; then
-    echo "fdbserver -r simulation -f src/foundationdb/$testfile --buggify $buggify --seed $randomseed"
+    echo "fdbserver -r simulation --crash --logsize 1024MB -f src/foundationdb/$testfile --buggify $buggify --seed $randomseed"
     testfile=""
     randomseed=""
   fi
