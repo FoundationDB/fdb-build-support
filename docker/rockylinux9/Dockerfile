@@ -680,7 +680,7 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
         mv kind-linux-arm64 /usr/local/bin/kind; \
     else \
         curl -Ls -O https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64 && \
-        curl -Ls -O https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64.sha256sum \
+        curl -Ls -O https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64.sha256sum && \
         sha256sum --quiet -c kind-linux-amd64.sha256sum && \
         chmod 755 kind-linux-amd64 && \
         mv kind-linux-amd64 /usr/local/bin/kind; \
