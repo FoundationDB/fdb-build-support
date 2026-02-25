@@ -69,7 +69,7 @@ RUN sed -i.bak 's/^#baseurl=/baseurl=/; s/^mirrorlist=/#mirrorlist=/' /etc/yum.r
 # TODO: Is this really necessary?!? -- from swift's dockerfile
 RUN sed -i -e 's/\*__block/\*__libc_block/g' /usr/include/unistd.h
 
-# install docker 20
+# Install docker
 ENV DOCKER_BUCKET="download.docker.com" \
     DOCKER_CHANNEL="stable" \
     DIND_COMMIT="3b5fac462d21ca164b3778647420016315289034" \
@@ -83,7 +83,7 @@ RUN set -ex \
     && if [ "$(uname -m)" == "aarch64" ]; then \
         DOCKER_SHA256="836bbaea204251922ec4dc79dbe81e323ccedaa726efc01f62683f547d721871"; \
         DOCKER_COMPOSE_VERSION="v2.16.0"; \
-        DOCKER_BUILDX_URL="https://github.com/docker/buildx/releases/download/${DOCKER_BUILDX_VERSION}/buildx-${DOCKER_BUILDX_VERSION}.linux-$(uname -m)" ;\
+        DOCKER_BUILDX_URL="https://github.com/docker/buildx/releases/download/${DOCKER_BUILDX_VERSION}/buildx-${DOCKER_BUILDX_VERSION}.linux-arm64" ;\
     else \
         DOCKER_SHA256="ff34bd799b5e4c3738a3b1a383cf4067c672add48c7203fcd003fcb0aacebc94"; \
         DOCKER_COMPOSE_VERSION="1.26.0"; \
@@ -99,10 +99,10 @@ RUN set -ex \
     && useradd -g dockremap dockremap \
     && echo 'dockremap:165536:65536' >> /etc/subuid \
     && echo 'dockremap:165536:65536' >> /etc/subgid \
-    && curl -Ls "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" -o /usr/local/bin/dind \
-    && curl -Ls https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose \
+    && curl --fail -Ls "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" -o /usr/local/bin/dind \
+    && curl --fail -Ls https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose \
     && mkdir -p /usr/local/lib/docker/cli-plugins \
-    && curl -Ls "${DOCKER_BUILDX_URL}" -o /usr/local/lib/docker/cli-plugins/docker-buildx \
+    && curl --fail -Ls "${DOCKER_BUILDX_URL}" -o /usr/local/lib/docker/cli-plugins/docker-buildx \
     && chmod +x /usr/local/bin/dind /usr/local/bin/docker-compose /usr/local/lib/docker/cli-plugins/docker-buildx \
     && docker-compose version
 
@@ -214,7 +214,7 @@ RUN curl -Ls https://www.openssl.org/source/openssl-1.1.1m.tar.gz -o openssl.tar
     cd ../ && \
     rm -rf /tmp/*
 
-ENV GO_VERSION="1.24.9"
+ENV GO_VERSION="1.25.7"
 # Install golang
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
         curl -Ls "https://go.dev/dl/go${GO_VERSION}.linux-arm64.tar.gz" -o golang.tar.gz; \
@@ -497,8 +497,7 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
 RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/misc/junit/ctest2junit.xsl -o /opt/ctest2junit.xsl
 
 # Add repro.sh script for generating test reproduction commands
-COPY repro.sh /usr/local/bin/repro.sh
-RUN chmod +x /usr/local/bin/repro.sh
+COPY --chmod=+x repro.sh /usr/local/bin/repro.sh
 
 # Build and install gRPC and Protobuf.
 RUN cd /tmp && \
@@ -668,9 +667,23 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     fi && \
     sha256sum --quiet -c kubectl.txt && \
     chmod 755 kubectl && \
-    mv kubectl /usr/local/bin/kubectl && \
-    cd /tmp && \
-    rm -rf /tmp/*
+    mv kubectl /usr/local/bin/kubectl
+
+ENV KIND_VERSION="v0.31.0"
+# Install kind for local testing
+RUN if [ "$(uname -m)" == "aarch64" ]; then \
+        curl -Ls -O https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-arm64 && \
+        curl -Ls -O https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-arm64.sha256sum && \
+        sha256sum --quiet -c kind-linux-arm64.sha256sum && \
+        chmod 755 kind-linux-arm64 && \
+        mv kind-linux-arm64 /usr/local/bin/kind; \
+    else \
+        curl -Ls -O https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64 && \
+        curl -Ls -O https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64.sha256sum \
+        sha256sum --quiet -c kind-linux-amd64.sha256sum && \
+        chmod 755 kind-linux-amd64 && \
+        mv kind-linux-amd64 /usr/local/bin/kind; \
+    fi
 
 # install k9s kubernetes client
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
@@ -710,20 +723,6 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
 RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
         rpm -ivh https://github.com/apple/foundationdb/releases/download/${FDB_VERSION}/foundationdb-clients-${FDB_VERSION}-1.el7.x86_64.rpm --excludepath=/etc/foundationdb --excludepath=/usr/bin --excludepath=/usr/lib --excludepath=/usr/lib64; \
     fi
-
-# Installing helm https://helm.sh/docs/intro/install for e2e testing with the operator.
-RUN pushd /tmp && \
-    # Binaries and checksum are fetched from here: https://github.com/helm/helm/releases/tag/v3.12.0
-    if [ "$(uname -m)" == "aarch64" ]; then \
-        curl -sLo helm.tar.gz "https://get.helm.sh/helm-v3.12.0-linux-arm64.tar.gz" && echo "658839fed8f9be2169f5df68e55cb2f0aa731a50df454caf183186766800bbd0 helm.tar.gz" | sha256sum --quiet -c -; \
-    else \
-        curl -sLo helm.tar.gz "https://get.helm.sh/helm-v3.12.0-linux-amd64.tar.gz" && echo "da36e117d6dbc57c8ec5bab2283222fbd108db86c83389eebe045ad1ef3e2c3b helm.tar.gz" | sha256sum --quiet -c -; \
-    fi && \
-    tar -zxvf /tmp/helm.tar.gz && \
-    mv linux-*/helm /usr/local/bin/helm && \
-    helm version --short && \
-    popd && \
-    rm -rf /tmp/*
 
 WORKDIR /root
 
