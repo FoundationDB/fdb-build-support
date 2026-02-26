@@ -2,10 +2,10 @@
 
 ![Build Status](https://codebuild.us-west-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiMDBtWmhSdnJ5N0FpSXozakdHaXZqRUs5NW41Ykk5eU9PaytkWm9MTzFQYkNNVk1lVjRtdU9BLzU5TEVwazZzVXd3dGI3ZkZ0dmJ3dUVTRkJubEdMRXFBPSIsIml2UGFyYW1ldGVyU3BlYyI6ImI1Tm1Gb2dSbUFocno3VUgiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=main)
 
-This repo contains files useful for building and developing FoundationDB. In 
-particular, it contains the docker image definitions used by FoundationDB team 
-members for development, and the image definitions used by the FoundationDB 
-CI/CD system. 
+This repo contains files useful for building and developing FoundationDB. In
+particular, it contains the docker image definitions used by FoundationDB team
+members for development, and the image definitions used by the FoundationDB
+CI/CD system.
 
 ## How-to
 
@@ -24,7 +24,7 @@ docker build --tag foundationdb/codebuild:rockylinux9-latest --target codebuild 
 
 The `build` target contains the core dependencies and tools that are required to compile FoundationDB.
 The `devel` target is "FROM" the `build` image. It adds developer tools and other convenience packages.
-The `distcc` target is "FROM" the `build` image. It adds a distcc daemon to the images. This is used to run a [distcc](https://www.distcc.org) service. 
+The `distcc` target is "FROM" the `build` image. It adds a distcc daemon to the images. This is used to run a [distcc](https://www.distcc.org) service.
 The `codebuild` target is "FROM" the `devel` images. It us used in FoundationDB CI/CD.
 
 ### Build FoundationDB
