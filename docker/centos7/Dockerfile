@@ -550,43 +550,6 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
 
 RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/misc/junit/ctest2junit.xsl -o /opt/ctest2junit.xsl
 
-# Download Rust binaries
-ENV RUSTUP_VERSION=1.24.3 \
-    RUST_VERSION=1.59.0
-RUN if [ "$(uname -m)" == "aarch64" ]; then \
-        RUST_ARCH="aarch64-unknown-linux-gnu"; \
-        RUST_SHA256="32a1532f7cef072a667bac53f1a5542c99666c4071af0c9549795bbdb2069ec1"; \
-    else \
-        RUST_ARCH="x86_64-unknown-linux-gnu"; \
-        RUST_SHA256="3dc5ef50861ee18657f9db2eeb7392f9c2a6c95c90ab41e45ab4ca71476b4338"; \
-    fi && \
-    curl -LsO "https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/${RUST_ARCH}/rustup-init" && \
-    echo "${RUST_SHA256}  rustup-init" > rustup-sha.txt && \
-    sha256sum --quiet -c rustup-sha.txt && \
-    chmod +x rustup-init && \
-    ./rustup-init -y --no-modify-path --profile minimal --default-toolchain ${RUST_VERSION} --default-host ${RUST_ARCH} && \
-    rm -rf /tmp/*
-
-# Download swift binaries
-ARG SWIFT_SIGNING_KEY=8A7495662C3CD4AE18D95637FAF6989E1BC16FEA
-ENV SWIFT_SIGNING_KEY=$SWIFT_SIGNING_KEY
-
-RUN set -ex; \
-    if [ ! "$(uname -m)" == "aarch64" ]; then \
-        export DOWNLOAD_DIR="swift-5.9-DEVELOPMENT-SNAPSHOT-2023-05-22-a" && \
-        echo $DOWNLOAD_DIR > .swift_tag && \
-        GNUPGHOME="$(mktemp -d)"; export GNUPGHOME && \
-        curl -fLs https://download.swift.org/swift-5.9-branch/centos7/swift-5.9-DEVELOPMENT-SNAPSHOT-2023-05-22-a/swift-5.9-DEVELOPMENT-SNAPSHOT-2023-05-22-a-centos7.tar.gz     -o latest_toolchain.tar.gz && \
-        curl -fLs https://download.swift.org/swift-5.9-branch/centos7/swift-5.9-DEVELOPMENT-SNAPSHOT-2023-05-22-a/swift-5.9-DEVELOPMENT-SNAPSHOT-2023-05-22-a-centos7.tar.gz.sig -o latest_toolchain.tar.gz.sig && \
-        curl -fLs https://swift.org/keys/all-keys.asc | gpg --import -  && \
-        gpg --batch --verify latest_toolchain.tar.gz.sig latest_toolchain.tar.gz && \
-        tar -xzf latest_toolchain.tar.gz --directory / --strip-components=1 && \
-        chmod -R o+r /usr/lib/swift && \
-        rm -rf "$GNUPGHOME" latest_toolchain.tar.gz.sig latest_toolchain.tar.gz; \
-        # Print Installed Swift Version
-        swift --version; \
-    fi
-
 RUN echo "Setup sphinx" && \
     source /opt/rh/rh-python38/enable && \
     python3 -m pip install setuptools==65.3.0 sphinx-bootstrap-theme==0.8.1 docutils==0.19 sphinx==5.1.1 sphinx-autobuild Jinja2==3.1.2 urllib3==2.0.2
