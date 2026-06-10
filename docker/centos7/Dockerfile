@@ -420,7 +420,7 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
 # not linkable to clang objects.
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     source /opt/rh/rh-python38/enable && \
-    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
+    curl -Ls https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
     echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
     mkdir -p /opt/boost_1_78_0_clang && \
