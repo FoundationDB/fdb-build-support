@@ -705,14 +705,6 @@ RUN pushd /tmp && \
     rm -rf /tmp/*
 
 WORKDIR /root
-# Pull in rust developer tools -- we use "nightly" for development
-# for extra warning messages and support for cargo fuzz
-RUN source $HOME/.cargo/env \
-    rustup default nightly \
-    rustup component add rust-analysis \
-    rustup component add rust-src \
-    rustup component add rls \
-    cargo install cargo-fuzz
 
 # add vscode server
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
@@ -822,8 +814,6 @@ RUN rm -f /root/anaconda-ks.cfg && \
     '            command addr2line "$@"' \
     '    fi' \
     '}' \
-    '' \
-    'source $HOME/.cargo/env' \
     '' \
     >> .bashrc
 
