@@ -591,39 +591,6 @@ RUN echo "Setup sphinx" && \
     source /opt/rh/rh-python38/enable && \
     python3 -m pip install setuptools==65.3.0 sphinx-bootstrap-theme==0.8.1 docutils==0.19 sphinx==5.1.1 sphinx-autobuild Jinja2==3.1.2 urllib3==2.0.2
 
-# install Boost 1.86 to /opt, using clang to compile the library
-# Boost::context depends on some C++11 features, e.g. std::call_once; however,
-# gcc and clang are using different ABIs, thus a gcc-built Boost::context is
-# not linkable to clang objects.
-RUN cd /tmp && \
-    source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
-    source /opt/rh/rh-python38/enable && \
-    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
-    echo "1bed88e40401b2cb7a1f76d4bab499e352fa4d0c5f31c0dbae64e24d34d7513b  boost_1_86_0.tar.bz2" > boost-sha.txt && \
-    sha256sum --quiet -c boost-sha.txt && \
-    mkdir -p /opt/boost_1_86_0_clang && \
-    tar --strip-components 1 --no-same-owner --directory /opt/boost_1_86_0_clang -xjf boost_1_86_0.tar.bz2 && \
-    cd /opt/boost_1_86_0_clang && \
-    ./bootstrap.sh --with-toolset=clang --with-libraries=all && \
-    ./b2 link=static cxxflags="-std=c++17 -stdlib=libc++ -nostdlib++ -fPIC" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_86_0_clang -j32 install && \
-    rm -rf /opt/boost_1_86_0_clang/libs && \
-    rm -rf /tmp/*
-
-# install Boost to /opt, using gcc
-RUN cd /tmp && \
-    source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
-    source /opt/rh/rh-python38/enable && \
-    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
-    echo "1bed88e40401b2cb7a1f76d4bab499e352fa4d0c5f31c0dbae64e24d34d7513b  boost_1_86_0.tar.bz2" > boost-sha.txt && \
-    sha256sum --quiet -c boost-sha.txt && \
-    mkdir -p /opt/boost_1_86_0 && \
-    tar --strip-components 1 --no-same-owner --directory /opt/boost_1_86_0 -xjf boost_1_86_0.tar.bz2 && \
-    cd /opt/boost_1_86_0 && \
-    ./bootstrap.sh --with-libraries=all && \
-    ./b2 link=static cxxflags="-std=c++17 -fPIC" --prefix=/opt/boost_1_86_0 -j32 install &&\
-    rm -rf /opt/boost_1_86_0/libs && \
-    rm -rf /tmp/*
-
 # Install seaweedfs, an ersatz 's3' service, for s3 tests.
 ENV SEAWEEDFS_VERSION=3.80
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
