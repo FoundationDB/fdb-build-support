@@ -29,9 +29,9 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
         epel-release \
         scl-utils \
         yum-utils && \
-       sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo && \
-       sed -i s/^#.*baseurl=http/baseurl=http/g /etc/yum.repos.d/*.repo && \
-       sed -i s/^mirrorlist=http/#mirrorlist=http/g /etc/yum.repos.d/*.repo && \
+       sed -i 's/mirror.centos.org/vault.centos.org/g' /etc/yum.repos.d/*.repo && \
+       sed -i 's/^#.*baseurl=http/baseurl=http/g'      /etc/yum.repos.d/*.repo && \
+       sed -i 's/^mirrorlist=http/#mirrorlist=http/g'  /etc/yum.repos.d/*.repo && \
     yum install -y \
         autoconf \
         automake \
@@ -403,7 +403,7 @@ RUN curl -Ls https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/bina
 # maintain and does build serialization.
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     source /opt/rh/rh-python38/enable && \
-    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
+    curl -Ls https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
     echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
     mkdir -p /opt/boost_1_78_0 && \
@@ -420,7 +420,7 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
 # not linkable to clang objects.
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     source /opt/rh/rh-python38/enable && \
-    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
+    curl -Ls https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
     echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
     mkdir -p /opt/boost_1_78_0_clang && \
@@ -550,79 +550,9 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
 
 RUN curl -Ls https://github.com/manticoresoftware/manticoresearch/raw/master/misc/junit/ctest2junit.xsl -o /opt/ctest2junit.xsl
 
-# Download Rust binaries
-ENV RUSTUP_VERSION=1.24.3 \
-    RUST_VERSION=1.59.0
-RUN if [ "$(uname -m)" == "aarch64" ]; then \
-        RUST_ARCH="aarch64-unknown-linux-gnu"; \
-        RUST_SHA256="32a1532f7cef072a667bac53f1a5542c99666c4071af0c9549795bbdb2069ec1"; \
-    else \
-        RUST_ARCH="x86_64-unknown-linux-gnu"; \
-        RUST_SHA256="3dc5ef50861ee18657f9db2eeb7392f9c2a6c95c90ab41e45ab4ca71476b4338"; \
-    fi && \
-    curl -LsO "https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/${RUST_ARCH}/rustup-init" && \
-    echo "${RUST_SHA256}  rustup-init" > rustup-sha.txt && \
-    sha256sum --quiet -c rustup-sha.txt && \
-    chmod +x rustup-init && \
-    ./rustup-init -y --no-modify-path --profile minimal --default-toolchain ${RUST_VERSION} --default-host ${RUST_ARCH} && \
-    rm -rf /tmp/*
-
-# Download swift binaries
-ARG SWIFT_SIGNING_KEY=8A7495662C3CD4AE18D95637FAF6989E1BC16FEA
-ENV SWIFT_SIGNING_KEY=$SWIFT_SIGNING_KEY
-
-RUN set -ex; \
-    if [ ! "$(uname -m)" == "aarch64" ]; then \
-        export DOWNLOAD_DIR="swift-5.9-DEVELOPMENT-SNAPSHOT-2023-05-22-a" && \
-        echo $DOWNLOAD_DIR > .swift_tag && \
-        GNUPGHOME="$(mktemp -d)"; export GNUPGHOME && \
-        curl -fLs https://download.swift.org/swift-5.9-branch/centos7/swift-5.9-DEVELOPMENT-SNAPSHOT-2023-05-22-a/swift-5.9-DEVELOPMENT-SNAPSHOT-2023-05-22-a-centos7.tar.gz     -o latest_toolchain.tar.gz && \
-        curl -fLs https://download.swift.org/swift-5.9-branch/centos7/swift-5.9-DEVELOPMENT-SNAPSHOT-2023-05-22-a/swift-5.9-DEVELOPMENT-SNAPSHOT-2023-05-22-a-centos7.tar.gz.sig -o latest_toolchain.tar.gz.sig && \
-        curl -fLs https://swift.org/keys/all-keys.asc | gpg --import -  && \
-        gpg --batch --verify latest_toolchain.tar.gz.sig latest_toolchain.tar.gz && \
-        tar -xzf latest_toolchain.tar.gz --directory / --strip-components=1 && \
-        chmod -R o+r /usr/lib/swift && \
-        rm -rf "$GNUPGHOME" latest_toolchain.tar.gz.sig latest_toolchain.tar.gz; \
-        # Print Installed Swift Version
-        swift --version; \
-    fi
-
 RUN echo "Setup sphinx" && \
     source /opt/rh/rh-python38/enable && \
     python3 -m pip install setuptools==65.3.0 sphinx-bootstrap-theme==0.8.1 docutils==0.19 sphinx==5.1.1 sphinx-autobuild Jinja2==3.1.2 urllib3==2.0.2
-
-# install Boost 1.86 to /opt, using clang to compile the library
-# Boost::context depends on some C++11 features, e.g. std::call_once; however,
-# gcc and clang are using different ABIs, thus a gcc-built Boost::context is
-# not linkable to clang objects.
-RUN cd /tmp && \
-    source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
-    source /opt/rh/rh-python38/enable && \
-    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
-    echo "1bed88e40401b2cb7a1f76d4bab499e352fa4d0c5f31c0dbae64e24d34d7513b  boost_1_86_0.tar.bz2" > boost-sha.txt && \
-    sha256sum --quiet -c boost-sha.txt && \
-    mkdir -p /opt/boost_1_86_0_clang && \
-    tar --strip-components 1 --no-same-owner --directory /opt/boost_1_86_0_clang -xjf boost_1_86_0.tar.bz2 && \
-    cd /opt/boost_1_86_0_clang && \
-    ./bootstrap.sh --with-toolset=clang --with-libraries=all && \
-    ./b2 link=static cxxflags="-std=c++17 -stdlib=libc++ -nostdlib++ -fPIC" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_86_0_clang -j32 install && \
-    rm -rf /opt/boost_1_86_0_clang/libs && \
-    rm -rf /tmp/*
-
-# install Boost to /opt, using gcc
-RUN cd /tmp && \
-    source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
-    source /opt/rh/rh-python38/enable && \
-    curl -Ls https://boostorg.jfrog.io/artifactory/main/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
-    echo "1bed88e40401b2cb7a1f76d4bab499e352fa4d0c5f31c0dbae64e24d34d7513b  boost_1_86_0.tar.bz2" > boost-sha.txt && \
-    sha256sum --quiet -c boost-sha.txt && \
-    mkdir -p /opt/boost_1_86_0 && \
-    tar --strip-components 1 --no-same-owner --directory /opt/boost_1_86_0 -xjf boost_1_86_0.tar.bz2 && \
-    cd /opt/boost_1_86_0 && \
-    ./bootstrap.sh --with-libraries=all && \
-    ./b2 link=static cxxflags="-std=c++17 -fPIC" --prefix=/opt/boost_1_86_0 -j32 install &&\
-    rm -rf /opt/boost_1_86_0/libs && \
-    rm -rf /tmp/*
 
 # Install seaweedfs, an ersatz 's3' service, for s3 tests.
 ENV SEAWEEDFS_VERSION=3.80
@@ -775,14 +705,6 @@ RUN pushd /tmp && \
     rm -rf /tmp/*
 
 WORKDIR /root
-# Pull in rust developer tools -- we use "nightly" for development
-# for extra warning messages and support for cargo fuzz
-RUN source $HOME/.cargo/env \
-    rustup default nightly \
-    rustup component add rust-analysis \
-    rustup component add rust-src \
-    rustup component add rls \
-    cargo install cargo-fuzz
 
 # add vscode server
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
@@ -892,8 +814,6 @@ RUN rm -f /root/anaconda-ks.cfg && \
     '            command addr2line "$@"' \
     '    fi' \
     '}' \
-    '' \
-    'source $HOME/.cargo/env' \
     '' \
     >> .bashrc
 
