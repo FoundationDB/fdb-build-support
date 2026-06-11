@@ -460,7 +460,7 @@ RUN curl -Ls https://github.com/ToruNiina/toml11/archive/v3.8.1.tar.gz -o toml.t
     cd toml && \
     mkdir build && \
     cd build && \
-    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -Dtoml11_BUILD_TEST=OFF ../ && \
+    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -Dtoml11_BUILD_TEST=OFF -DCMAKE_CXX_STANDARD=20 ../ && \
     cmake --build . --target install && \
     cd ../ && \
     rm -rf /tmp/*
