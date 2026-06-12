@@ -452,15 +452,15 @@ RUN curl -Ls https://github.com/ccache/ccache/releases/download/v4.8.3/ccache-4.
     rm -rf /tmp/*
 
 # build/install toml
-RUN curl -Ls https://github.com/ToruNiina/toml11/archive/v3.4.0.tar.gz -o toml.tar.gz && \
-    echo "bc6d733efd9216af8c119d8ac64a805578c79cc82b813e4d1d880ca128bd154d  toml.tar.gz" > toml-sha256.txt && \
+RUN curl -Ls https://github.com/ToruNiina/toml11/archive/v3.8.1.tar.gz -o toml.tar.gz && \
+    echo "6a3d20080ecca5ea42102c078d3415bef80920f6c4ea2258e87572876af77849  toml.tar.gz" > toml-sha256.txt && \
     sha256sum --quiet -c toml-sha256.txt && \
     mkdir toml && \
     tar --strip-components 1 --no-same-owner --directory toml -xf toml.tar.gz && \
     cd toml && \
     mkdir build && \
     cd build && \
-    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -Dtoml11_BUILD_TEST=OFF ../ && \
+    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -Dtoml11_BUILD_TEST=OFF -DCMAKE_CXX_STANDARD=20 ../ && \
     cmake --build . --target install && \
     cd ../ && \
     rm -rf /tmp/*
