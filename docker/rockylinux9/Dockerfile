@@ -66,8 +66,6 @@ RUN sed -i.bak 's/^#baseurl=/baseurl=/; s/^mirrorlist=/#mirrorlist=/' /etc/yum.r
     dnf clean all && \
     rm -rf /var/cache/dnf
 
-# TODO: Is this really necessary?!? -- from swift's dockerfile
-RUN sed -i -e 's/\*__block/\*__libc_block/g' /usr/include/unistd.h
 
 # Install docker
 ENV DOCKER_BUCKET="download.docker.com" \

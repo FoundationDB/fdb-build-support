@@ -84,9 +84,6 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
     yum clean all && \
     rm -rf /var/cache/yum
 
-# TODO: Is this really necessary?!? -- from swift's dockerfile
-RUN sed -i -e 's/\*__block/\*__libc_block/g' /usr/include/unistd.h
-
 
 # install docker 20
 ENV DOCKER_BUCKET="download.docker.com" \
