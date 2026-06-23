@@ -337,11 +337,7 @@ RUN curl -Ls https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/bina
     echo '[ -x /opt/maven/bin/mvn ] && export PATH=/opt/maven/bin/:$PATH' >> /etc/profile.d/maven.sh && \
     rm -rf /tmp/*
 
-# install Boost to /opt
-# This used to pass --with-libraries=context,filesystem,iostreams,system,serialization
-# which doesn't build serialization (or builds it in a form that downstream cmake builds
-# cannot find).  Instead of debugging their build logic, we pass "all", which is simpler to
-# maintain and does build serialization.
+# install Boost to /opt, using gcc (for foundationdb 7.3.x)
 RUN curl -Ls https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
     echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
@@ -349,28 +345,32 @@ RUN curl -Ls https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0 -xjf boost_1_78_0.tar.bz2 && \
     cd /opt/boost_1_78_0 && \
     source /opt/rh/gcc-toolset-13/enable && \
-    ./bootstrap.sh --with-libraries=all && \
-    ./b2 link=static cxxflags="-std=c++17 -fPIC" --prefix=/opt/boost_1_78_0 -j32 install &&\
+    ./bootstrap.sh --with-libraries=context,filesystem,iostreams,system,serialization,program_options && \
+    ./b2 link=static cxxflags="-std=c++17 -fPIC" \
+         -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
+         --prefix=/opt/boost_1_78_0 -j32 install && \
     rm -rf /opt/boost_1_78_0/libs && \
     rm -rf /tmp/*
 
 # install Boost to /opt, using clang to compile the library
-# clang 18 generates errors when using all libraries, so we need to specify the libraries explicitly
+# Boost::context depends on some C++11 features, e.g. std::call_once; however,
+# gcc and clang are using different ABIs, thus a gcc-built Boost::context is
+# not linkable to clang objects.
 RUN curl -Ls https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
     echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
     mkdir -p /opt/boost_1_78_0_clang && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0_clang -xjf boost_1_78_0.tar.bz2 && \
     cd /opt/boost_1_78_0_clang && \
-    ./bootstrap.sh --with-toolset=clang --with-libraries=context,filesystem,iostreams,system,serialization && \
-    ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++ -fPIC" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_78_0_clang -j32 install && \
+    ./bootstrap.sh --with-toolset=clang --with-libraries=context,filesystem,iostreams,system,serialization,program_options && \
+    ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++ -fPIC" \
+                     linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" \
+         -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
+         --prefix=/opt/boost_1_78_0_clang -j32 install && \
     rm -rf /opt/boost_1_78_0_clang/libs && \
     rm -rf /tmp/*
 
-# install Boost 1.86 to /opt, using clang to compile the library
-# Boost::context depends on some C++11 features, e.g. std::call_once; however,
-# gcc and clang are using different ABIs, thus a gcc-built Boost::context is
-# not linkable to clang objects.
+# install Boost 1.86 to /opt, using clang to compile the library (for foundationdb 7.4+)
 RUN cd /tmp && \
     curl -Ls https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
     echo "1bed88e40401b2cb7a1f76d4bab499e352fa4d0c5f31c0dbae64e24d34d7513b  boost_1_86_0.tar.bz2" > boost-sha.txt && \
@@ -378,12 +378,15 @@ RUN cd /tmp && \
     mkdir -p /opt/boost_1_86_0_clang && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_86_0_clang -xjf boost_1_86_0.tar.bz2 && \
     cd /opt/boost_1_86_0_clang && \
-    ./bootstrap.sh --with-toolset=clang --with-libraries=all && \
-    ./b2 link=static cxxflags="-std=c++17 -stdlib=libc++ -nostdlib++ -fPIC" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_86_0_clang -j32 install && \
+    ./bootstrap.sh --with-toolset=clang --with-libraries=context,filesystem,iostreams,system,serialization,program_options,url && \
+    ./b2 link=static cxxflags="-std=c++17 -stdlib=libc++ -nostdlib++ -fPIC" \
+                     linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" \
+         -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
+         --prefix=/opt/boost_1_86_0_clang -j32 install && \
     rm -rf /opt/boost_1_86_0_clang/libs && \
     rm -rf /tmp/*
 
-# install Boost to /opt, using gcc
+# install Boost 1.86 to /opt, using gcc (for foundationdb 7.4+)
 RUN cd /tmp && \
     curl -Ls https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
     echo "1bed88e40401b2cb7a1f76d4bab499e352fa4d0c5f31c0dbae64e24d34d7513b  boost_1_86_0.tar.bz2" > boost-sha.txt && \
@@ -392,8 +395,10 @@ RUN cd /tmp && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_86_0 -xjf boost_1_86_0.tar.bz2 && \
     cd /opt/boost_1_86_0 && \
     source /opt/rh/gcc-toolset-13/enable && \
-    ./bootstrap.sh --with-libraries=all && \
-    ./b2 link=static cxxflags="-std=c++17 -fPIC" --prefix=/opt/boost_1_86_0 -j32 install &&\
+    ./bootstrap.sh --with-libraries=context,filesystem,iostreams,system,serialization,program_options,url && \
+    ./b2 link=static cxxflags="-std=c++17 -fPIC" \
+         -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
+         --prefix=/opt/boost_1_86_0 -j32 install && \
     rm -rf /opt/boost_1_86_0/libs && \
     rm -rf /tmp/*
 
