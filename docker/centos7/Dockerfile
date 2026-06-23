@@ -394,10 +394,6 @@ RUN curl -Ls https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/bina
     rm -rf /tmp/*
 
 # install Boost to /opt
-# This used to pass --with-libraries=context,filesystem,iostreams,system,serialization
-# which doesn't build serialization (or builds it in a form that downstream cmake builds
-# cannot find).  Instead of debugging their build logic, we pass "all", which is simpler to
-# maintain and does build serialization.
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     source /opt/rh/rh-python38/enable && \
     curl -Ls https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
@@ -406,8 +402,10 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     mkdir -p /opt/boost_1_78_0 && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0 -xjf boost_1_78_0.tar.bz2 && \
     cd /opt/boost_1_78_0 && \
-    ./bootstrap.sh --with-libraries=all && \
-    ./b2 link=static cxxflags="-std=c++14 -fPIC" --prefix=/opt/boost_1_78_0 -j32 install &&\
+    ./bootstrap.sh --with-libraries=context,filesystem,iostreams,system,serialization,program_options && \
+    ./b2 link=static cxxflags="-std=c++14 -fPIC" \
+         -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
+         --prefix=/opt/boost_1_78_0 -j32 install && \
     rm -rf /opt/boost_1_78_0/libs && \
     rm -rf /tmp/*
 
@@ -423,8 +421,11 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     mkdir -p /opt/boost_1_78_0_clang && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0_clang -xjf boost_1_78_0.tar.bz2 && \
     cd /opt/boost_1_78_0_clang && \
-    ./bootstrap.sh --with-toolset=clang --with-libraries=all && \
-    ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++ -fPIC" linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" --prefix=/opt/boost_1_78_0_clang -j32 install && \
+    ./bootstrap.sh --with-toolset=clang --with-libraries=context,filesystem,iostreams,system,serialization,program_options && \
+    ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++ -fPIC" \
+                     linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" \
+         -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
+         --prefix=/opt/boost_1_78_0_clang -j32 install && \
     rm -rf /opt/boost_1_78_0_clang/libs && \
     rm -rf /tmp/*
 
