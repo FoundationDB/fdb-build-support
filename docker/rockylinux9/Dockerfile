@@ -402,14 +402,14 @@ RUN curl -LsO https://github.com/msgpack/msgpack-c/releases/download/cpp-3.3.0/m
     rm -rf /tmp/*
 
 # Install CCACHE
-RUN curl -Ls https://github.com/ccache/ccache/releases/download/v4.8.3/ccache-4.8.3.tar.gz -o ccache.tar.gz && \
-    echo "d59dd569ad2bbc826c0bc335c8ebd73e78ed0f2f40ba6b30069347e63585d9ef  ccache.tar.gz" > ccache-sha256.txt && \
+RUN curl -sfSL https://github.com/ccache/ccache/releases/download/v4.11.3/ccache-4.11.3.tar.gz -o ccache.tar.gz && \
+    echo "28a407314f03a7bd7a008038dbaffa83448bc670e2fc119609b1d99fb33bb600  ccache.tar.gz" > ccache-sha256.txt && \
     sha256sum --quiet -c ccache-sha256.txt && \
     mkdir ccache &&\
     tar --strip-components 1 --no-same-owner --directory ccache -xf ccache.tar.gz && \
     mkdir build && \
     cd build && \
-    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DZSTD_FROM_INTERNET=ON ../ccache && \
+    cmake -G Ninja -D CMAKE_BUILD_TYPE=Release -D DEPS=DOWNLOAD -D ENABLE_TESTING=OFF -D REDIS_STORAGE_BACKEND=OFF ../ccache && \
     cmake --build . --target install && \
     cd ../ && \
     rm -rf /tmp/*
@@ -429,7 +429,7 @@ RUN curl -Ls https://github.com/ToruNiina/toml11/archive/v3.8.1.tar.gz -o toml.t
     rm -rf /tmp/*
 
 # build/install distcc
-RUN curl -Ls https://github.com/distcc/distcc/archive/refs/tags/v3.4.tar.gz -o distcc.tar.gz && \
+RUN curl -sfSL https://github.com/distcc/distcc/archive/refs/tags/v3.4.tar.gz -o distcc.tar.gz && \
     echo "37a34c9555498a1168fea026b292ab07e7bb394715d87d8403e0c33b16d2d008  distcc.tar.gz" > distcc-sha256.txt && \
     sha256sum --quiet -c distcc-sha256.txt && \
     mkdir distcc && \

@@ -448,14 +448,14 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
 
 # Install CCACHE
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
-    curl -Ls https://github.com/ccache/ccache/releases/download/v4.0/ccache-4.0.tar.gz -o ccache.tar.gz && \
-    echo "ac97af86679028ebc8555c99318352588ff50f515fc3a7f8ed21a8ad367e3d45  ccache.tar.gz" > ccache-sha256.txt && \
+    curl -sfSL https://github.com/ccache/ccache/releases/download/v4.11.3/ccache-4.11.3.tar.gz -o ccache.tar.gz && \
+    echo "28a407314f03a7bd7a008038dbaffa83448bc670e2fc119609b1d99fb33bb600  ccache.tar.gz" > ccache-sha256.txt && \
     sha256sum --quiet -c ccache-sha256.txt && \
     mkdir ccache &&\
     tar --strip-components 1 --no-same-owner --directory ccache -xf ccache.tar.gz && \
     mkdir build && \
     cd build && \
-    cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DZSTD_FROM_INTERNET=ON ../ccache && \
+    cmake -G Ninja -D CMAKE_BUILD_TYPE=Release -D DEPS=DOWNLOAD -D ENABLE_TESTING=OFF -D REDIS_STORAGE_BACKEND=OFF ../ccache && \
     cmake --build . --target install && \
     cd .. && \
     rm -rf /tmp/*
@@ -478,8 +478,8 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
 # build/install distcc
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     source /opt/rh/rh-python38/enable && \
-    curl -Ls https://github.com/distcc/distcc/archive/v3.3.5.tar.gz -o distcc.tar.gz && \
-    echo "13a4b3ce49dfc853a3de550f6ccac583413946b3a2fa778ddf503a9edc8059b0  distcc.tar.gz" > distcc-sha256.txt && \
+    curl -sfSL https://github.com/distcc/distcc/archive/refs/tags/v3.4.tar.gz -o distcc.tar.gz && \
+    echo "37a34c9555498a1168fea026b292ab07e7bb394715d87d8403e0c33b16d2d008  distcc.tar.gz" > distcc-sha256.txt && \
     sha256sum --quiet -c distcc-sha256.txt && \
     mkdir distcc && \
     tar --strip-components 1 --no-same-owner --directory distcc -xf distcc.tar.gz && \
