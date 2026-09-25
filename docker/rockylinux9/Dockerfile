@@ -312,7 +312,7 @@ RUN curl -Ls https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/bina
     rm -rf /tmp/*
 
 # install Boost to /opt, using gcc (for foundationdb 7.3.x)
-RUN curl -Ls https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
+RUN curl -sfSL https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
     echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
     mkdir -p /opt/boost_1_78_0 && \
@@ -330,7 +330,7 @@ RUN curl -Ls https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz
 # Boost::context depends on some C++11 features, e.g. std::call_once; however,
 # gcc and clang are using different ABIs, thus a gcc-built Boost::context is
 # not linkable to clang objects.
-RUN curl -Ls https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
+RUN curl -sfSL https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz2 -o boost_1_78_0.tar.bz2 && \
     echo "8681f175d4bdb26c52222665793eef08490d7758529330f98d3b29dd0735bccc  boost_1_78_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
     mkdir -p /opt/boost_1_78_0_clang && \
@@ -346,7 +346,7 @@ RUN curl -Ls https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.bz
 
 # install Boost 1.86 to /opt, using clang to compile the library (for foundationdb 7.4+)
 RUN cd /tmp && \
-    curl -Ls https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
+    curl -sfSL https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
     echo "1bed88e40401b2cb7a1f76d4bab499e352fa4d0c5f31c0dbae64e24d34d7513b  boost_1_86_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
     mkdir -p /opt/boost_1_86_0_clang && \
@@ -362,7 +362,7 @@ RUN cd /tmp && \
 
 # install Boost 1.86 to /opt, using gcc (for foundationdb 7.4+)
 RUN cd /tmp && \
-    curl -Ls https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
+    curl -sfSL https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.bz2 -o boost_1_86_0.tar.bz2 && \
     echo "1bed88e40401b2cb7a1f76d4bab499e352fa4d0c5f31c0dbae64e24d34d7513b  boost_1_86_0.tar.bz2" > boost-sha.txt && \
     sha256sum --quiet -c boost-sha.txt && \
     mkdir -p /opt/boost_1_86_0 && \
@@ -374,6 +374,38 @@ RUN cd /tmp && \
          -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
          --prefix=/opt/boost_1_86_0 -j32 install && \
     rm -rf /opt/boost_1_86_0/libs && \
+    rm -rf /tmp/*
+
+# install Boost 1.89 to /opt, using clang to compile the library (for foundationdb 8+)
+RUN cd /tmp && \
+    curl -sfSL https://archives.boost.io/release/1.89.0/source/boost_1_89_0.tar.bz2 -o boost_1_89_0.tar.bz2 && \
+    echo "85a33fa22621b4f314f8e85e1a5e2a9363d22e4f4992925d4bb3bc631b5a0c7a  boost_1_89_0.tar.bz2" > boost-sha.txt && \
+    sha256sum --quiet -c boost-sha.txt && \
+    mkdir -p /opt/boost_1_89_0_clang && \
+    tar --strip-components 1 --no-same-owner --directory /opt/boost_1_89_0_clang -xjf boost_1_89_0.tar.bz2 && \
+    cd /opt/boost_1_89_0_clang && \
+    ./bootstrap.sh --with-toolset=clang --with-libraries=context,filesystem,iostreams,serialization,program_options,url && \
+    ./b2 link=static cxxflags="-std=c++17 -stdlib=libc++ -nostdlib++ -fPIC" \
+                     linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" \
+         -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
+         --prefix=/opt/boost_1_89_0_clang -j32 install && \
+    rm -rf /opt/boost_1_89_0_clang/libs && \
+    rm -rf /tmp/*
+
+# install Boost 1.89 to /opt, using gcc (for foundationdb 8+)
+RUN cd /tmp && \
+    curl -sfSL https://archives.boost.io/release/1.89.0/source/boost_1_89_0.tar.bz2 -o boost_1_89_0.tar.bz2 && \
+    echo "85a33fa22621b4f314f8e85e1a5e2a9363d22e4f4992925d4bb3bc631b5a0c7a  boost_1_89_0.tar.bz2" > boost-sha.txt && \
+    sha256sum --quiet -c boost-sha.txt && \
+    mkdir -p /opt/boost_1_89_0 && \
+    tar --strip-components 1 --no-same-owner --directory /opt/boost_1_89_0 -xjf boost_1_89_0.tar.bz2 && \
+    cd /opt/boost_1_89_0 && \
+    source /opt/rh/gcc-toolset-13/enable && \
+    ./bootstrap.sh --with-libraries=context,filesystem,iostreams,serialization,program_options,url && \
+    ./b2 link=static cxxflags="-std=c++17 -fPIC" \
+         -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
+         --prefix=/opt/boost_1_89_0 -j32 install && \
+    rm -rf /opt/boost_1_89_0/libs && \
     rm -rf /tmp/*
 
 # jemalloc
