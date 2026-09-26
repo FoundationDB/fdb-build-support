@@ -387,7 +387,7 @@ RUN cd /tmp && \
     ./bootstrap.sh --with-toolset=clang --with-libraries=context,filesystem,iostreams,serialization,program_options,url && \
     ./b2 link=static cxxflags="-std=c++17 -stdlib=libc++ -nostdlib++ -fPIC" \
                      linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" \
-         -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
+         -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 --disable-icu \
          --prefix=/opt/boost_1_89_0_clang -j32 install && \
     rm -rf /opt/boost_1_89_0_clang/libs && \
     rm -rf /tmp/*
@@ -403,7 +403,7 @@ RUN cd /tmp && \
     source /opt/rh/gcc-toolset-13/enable && \
     ./bootstrap.sh --with-libraries=context,filesystem,iostreams,serialization,program_options,url && \
     ./b2 link=static cxxflags="-std=c++17 -fPIC" \
-         -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
+         -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 --disable-icu \
          --prefix=/opt/boost_1_89_0 -j32 install && \
     rm -rf /opt/boost_1_89_0/libs && \
     rm -rf /tmp/*
