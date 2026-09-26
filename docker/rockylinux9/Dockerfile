@@ -320,7 +320,7 @@ RUN curl -sfSL https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.
     cd /opt/boost_1_78_0 && \
     source /opt/rh/gcc-toolset-13/enable && \
     ./bootstrap.sh --with-libraries=context,filesystem,iostreams,system,serialization,program_options && \
-    ./b2 link=static cxxflags="-std=c++17 -fPIC" \
+    ./b2 link=static cxxflags="-std=c++17 -fPIC -fvisibility=hidden" \
          -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
          --prefix=/opt/boost_1_78_0 -j32 install && \
     rm -rf /opt/boost_1_78_0/libs && \
@@ -337,8 +337,8 @@ RUN curl -sfSL https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0_clang -xjf boost_1_78_0.tar.bz2 && \
     cd /opt/boost_1_78_0_clang && \
     ./bootstrap.sh --with-toolset=clang --with-libraries=context,filesystem,iostreams,system,serialization,program_options && \
-    ./b2 link=static cxxflags="-std=c++14 -stdlib=libc++ -nostdlib++ -fPIC" \
-                     linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" \
+    ./b2 link=static cxxflags="-std=c++17 -stdlib=libc++ -nostdlib++ -fPIC -fvisibility=hidden -D_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION" \
+                     linkflags="-static-libgcc -lc++ -lc++abi" \
          -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
          --prefix=/opt/boost_1_78_0_clang -j32 install && \
     rm -rf /opt/boost_1_78_0_clang/libs && \
@@ -353,8 +353,8 @@ RUN cd /tmp && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_86_0_clang -xjf boost_1_86_0.tar.bz2 && \
     cd /opt/boost_1_86_0_clang && \
     ./bootstrap.sh --with-toolset=clang --with-libraries=context,filesystem,iostreams,system,serialization,program_options,url && \
-    ./b2 link=static cxxflags="-std=c++17 -stdlib=libc++ -nostdlib++ -fPIC" \
-                     linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" \
+    ./b2 link=static cxxflags="-std=c++17 -stdlib=libc++ -nostdlib++ -fPIC -fvisibility=hidden" \
+                     linkflags="-static-libgcc -lc++ -lc++abi" \
          -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
          --prefix=/opt/boost_1_86_0_clang -j32 install && \
     rm -rf /opt/boost_1_86_0_clang/libs && \
@@ -370,7 +370,7 @@ RUN cd /tmp && \
     cd /opt/boost_1_86_0 && \
     source /opt/rh/gcc-toolset-13/enable && \
     ./bootstrap.sh --with-libraries=context,filesystem,iostreams,system,serialization,program_options,url && \
-    ./b2 link=static cxxflags="-std=c++17 -fPIC" \
+    ./b2 link=static cxxflags="-std=c++17 -fPIC -fvisibility=hidden" \
          -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
          --prefix=/opt/boost_1_86_0 -j32 install && \
     rm -rf /opt/boost_1_86_0/libs && \
@@ -385,9 +385,9 @@ RUN cd /tmp && \
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_89_0_clang -xjf boost_1_89_0.tar.bz2 && \
     cd /opt/boost_1_89_0_clang && \
     ./bootstrap.sh --with-toolset=clang --with-libraries=context,filesystem,iostreams,serialization,program_options,url && \
-    ./b2 link=static cxxflags="-std=c++17 -stdlib=libc++ -nostdlib++ -fPIC" \
-                     linkflags="-stdlib=libc++ -nostdlib++ -static-libgcc -lc++ -lc++abi" \
-         -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
+    ./b2 link=static cxxflags="-std=c++17 -stdlib=libc++ -nostdlib++ -fPIC -fvisibility=hidden" \
+                     linkflags="-static-libgcc -lc++ -lc++abi" \
+         -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 --disable-icu \
          --prefix=/opt/boost_1_89_0_clang -j32 install && \
     rm -rf /opt/boost_1_89_0_clang/libs && \
     rm -rf /tmp/*
@@ -402,8 +402,8 @@ RUN cd /tmp && \
     cd /opt/boost_1_89_0 && \
     source /opt/rh/gcc-toolset-13/enable && \
     ./bootstrap.sh --with-libraries=context,filesystem,iostreams,serialization,program_options,url && \
-    ./b2 link=static cxxflags="-std=c++17 -fPIC" \
-         -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
+    ./b2 link=static cxxflags="-std=c++17 -fPIC -fvisibility=hidden" \
+         -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 --disable-icu \
          --prefix=/opt/boost_1_89_0 -j32 install && \
     rm -rf /opt/boost_1_89_0/libs && \
     rm -rf /tmp/*
