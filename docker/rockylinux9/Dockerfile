@@ -337,7 +337,7 @@ RUN curl -sfSL https://archives.boost.io/release/1.78.0/source/boost_1_78_0.tar.
     tar --strip-components 1 --no-same-owner --directory /opt/boost_1_78_0_clang -xjf boost_1_78_0.tar.bz2 && \
     cd /opt/boost_1_78_0_clang && \
     ./bootstrap.sh --with-toolset=clang --with-libraries=context,filesystem,iostreams,system,serialization,program_options && \
-    ./b2 link=static cxxflags="-std=c++17 -stdlib=libc++ -nostdlib++ -fPIC -fvisibility=hidden" \
+    ./b2 link=static cxxflags="-std=c++17 -stdlib=libc++ -nostdlib++ -fPIC -fvisibility=hidden -D_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION" \
                      linkflags="-static-libgcc -lc++ -lc++abi" \
          -s NO_BZIP2=1 -s NO_LZMA=1 -s NO_ZSTD=1 \
          --prefix=/opt/boost_1_78_0_clang -j32 install && \
