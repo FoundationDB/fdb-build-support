@@ -78,6 +78,7 @@ RUN if [ ! "$(uname -m)" == "aarch64" ]; then \
         unzip \
         vim-enhanced \
         wget \
+        xxhash-devel \
         zlib-devel \
         && \
     rm -f /etc/yum.repos.d/mono-centos7-stable.repo && \
@@ -242,6 +243,17 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     cp "/usr/local/include/$(uname -m)-unknown-linux-gnu/c++/v1/__config_site" /usr/local/include/c++/v1/__config_site && \
     cd ../.. && \
     rm -rf /tmp/*
+
+# install debugedit 5.1 for "cpack -G RPM" to support compressed debuginfo
+RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
+    curl -sfSLO https://sourceware.org/pub/debugedit/5.1/debugedit-5.1.tar.xz && \
+    echo "ee9b688b2ed8fa62551c54cb5dc31aaa05853e7dedbd9e1237c77894ea5e3626  debugedit-5.1.tar.xz" > debugedit.sha256 && \
+    sha256sum -c debugedit.sha256 && \
+    tar -xvf debugedit-5.1.tar.xz && \
+    cd       debugedit-5.1        && \
+    ./configure                   && \
+    make install                  && \
+    cd .. && rm -rf debugedit-*
 
 # build/install openssl
 RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
