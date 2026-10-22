@@ -57,16 +57,18 @@ RUN sed -i.bak 's/^#baseurl=/baseurl=/; s/^mirrorlist=/#mirrorlist=/' /etc/yum.r
         libunwind \
         libunwind-devel \
         libxcrypt-compat \
+        perl-lib \
         perl-FindBin \
         perl-IPC-Cmd \
         perl-Pod-Html \
-        perl-lib \
+        perl-Time-Piece \
         python3-devel \
         ruby \
 	tidy && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
+# perl libs for openssl Configure (and others)
 
 # Install docker
 ENV DOCKER_BUCKET="download.docker.com" \
