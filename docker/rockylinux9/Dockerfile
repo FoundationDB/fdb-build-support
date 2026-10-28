@@ -809,7 +809,7 @@ RUN rm -f /root/anaconda-ks.cfg && \
     '}' \
     'function ccmk() {' \
     '    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D  BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
-    '    ninja -v -C ${HOME}/build_output -j 84 2>&1 | tee ${HOME}/ninja.log' \
+    '    ninja -C ${HOME}/build_output -j 84 2>&1 | tee ${HOME}/ninja.log' \
     '}' \
     'function ccmk_dbg() {' \
     '    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D  BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -D CMAKE_BUILD_TYPE=DEBUG -D FULL_DEBUG_SYMBOLS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
