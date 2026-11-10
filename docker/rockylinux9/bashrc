@@ -40,6 +40,43 @@ function fmt() {
    find ${HOME}/src/foundationdb -type f \( -name \*.c -o -name \*.cpp -o -name \*.h -o -name \*.hpp \) -a \( ! -name sqlite3.amalgamation.c \) -a \( ! -path \*.git\* \) -exec clang-format -style=file -i "{}" \;
 }
 
+function ccmk_hotfix() {
+  (
+    set -e -u -o pipefail
+    VERSION=$(awk '/ VERSION / {print $2; exit}' ${HOME}/src/foundationdb/CMakeLists.txt)
+    GITSHA=$(git -C ${HOME}/src/foundationdb log -n1 --pretty=oneline --abbrev-commit | awk '{print $1}')
+    BUILDNAME="${VERSION}-hotfix-${GITSHA}"
+    # ccache needed to use distcc to avoid OOM, but use empty local cache
+    export CCACHE_DIR=/var/cache/localcc
+    ccache --clear
+    rm -rf "${HOME}/build_output"
+    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 \
+    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output \
+          -D USE_CCACHE=ON \
+          -D USE_WERROR=ON \
+          -D CMAKE_BUILD_TYPE=Release \
+          -D FDB_RELEASE=ON \
+          -D FDB_RELEASE_CANDIDATE=OFF \
+          -D WITH_LIBURING=OFF \
+          -D PORTABLE_ROCKSDB=1 \
+          -D ROCKSDB_TOOLS=ON \
+          -D RUN_JUNIT_TESTS=ON \
+          -D BUILD_AWS_BACKUP=ON \
+          -G Ninja 2>&1 | tee ${HOME}/cmake.log
+    ninja -C ${HOME}/build_output -j 72 all strip_targets 2>&1 | tee ${HOME}/ninja.log
+    cd ${HOME}/build_output/packages/bin
+    # separate tarballs just because small files transfer faster in urgent situation
+    tar -czvf ${HOME}/fdbserver-${BUILDNAME}.tar.gz       fdbserver
+    tar -czvf ${HOME}/fdbserver-${BUILDNAME}-debug.tar.gz fdbserver.debug
+    tar -czvf ${HOME}/fdbbackup-${BUILDNAME}.tar.gz       fdbbackup
+    tar -czvf ${HOME}/fdbbackup-${BUILDNAME}-debug.tar.gz fdbbackup.debug
+    tar -czvf ${HOME}/fdbcli-${BUILDNAME}.tar.gz          fdbcli
+    tar -czvf ${HOME}/fdbcli-${BUILDNAME}-debug.tar.gz    fdbcli.debug
+    ls -lh ${HOME}/fdb*.tar.gz
+    echo "Copy the needed tarballs to src/ to make available for sharing"
+  )
+}
+
 function addr2line() {
     local EXECUTABLE=""
     local OPTIND OPTARG OPTION
