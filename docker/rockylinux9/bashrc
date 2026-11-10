@@ -40,11 +40,6 @@ function fmt() {
    find ${HOME}/src/foundationdb -type f \( -name \*.c -o -name \*.cpp -o -name \*.h -o -name \*.hpp \) -a \( ! -name sqlite3.amalgamation.c \) -a \( ! -path \*.git\* \) -exec clang-format -style=file -i "{}" \;
 }
 
-USER_BASHRC="$HOME/src/.bashrc.local"
-if test -f "$USER_BASHRC"; then
-   source $USER_BASHRC
-fi
-
 function addr2line() {
     EXECUTABLE=""
     while getopts ":e:" OPTION
@@ -57,14 +52,11 @@ function addr2line() {
                             ;;
             esac
     done
-    if [ -z $EXECUTABLE ]
-    then
+    if [ -z "$EXECUTABLE" ]; then
             echo "Missing executable"
             return
     fi
-    readelf -p .comment $EXECUTABLE | grep -q "clang"
-    if [ $? -eq 0 ]
-    then
+    if readelf -p .comment "$EXECUTABLE" | grep -q "clang"; then
             # This is a clang generated ELF
             llvm-addr2line "$@"
     else
@@ -72,3 +64,8 @@ function addr2line() {
             command addr2line "$@"
     fi
 }
+
+USER_BASHRC="$HOME/src/.bashrc.local"
+if test -f "$USER_BASHRC"; then
+   source "$USER_BASHRC"
+fi
