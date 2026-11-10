@@ -43,7 +43,8 @@ function fmt() {
 }
 
 function addr2line() {
-    EXECUTABLE=""
+    local EXECUTABLE=""
+    local OPTIND OPTARG OPTION
     while getopts ":e:" OPTION
     do
             case "$OPTION" in
