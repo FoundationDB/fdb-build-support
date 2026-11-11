@@ -762,107 +762,12 @@ RUN if [ "$(uname -m)" == "aarch64" ]; then \
     touch .vscode-server/bin/latest/0 && \
     rm -rf /tmp/*
 
-RUN rm -f /root/anaconda-ks.cfg && \
-    printf '%s\n' \
-    '#!/usr/bin/env bash' \
-    'set -Eeuo pipefail' \
-    '' \
-    'mkdir -p ~/.docker' \
-    'cat > ~/.docker/config.json << EOF' \
-    '{' \
-    ' "aliases": {' \
-    '   "builder": "buildx"' \
-    ' },' \
-    ' "proxies":' \
-    ' {' \
-    '   "default":' \
-    '   {' \
-    '     "httpProxy": "${HTTP_PROXY}",' \
-    '     "httpsProxy": "${HTTPS_PROXY}",' \
-    '     "noProxy": "${NO_PROXY}"' \
-    '   }' \
-    ' }' \
-    '}' \
-    'EOF' \
-    > /usr/local/bin/docker_proxy.sh && \
-    chmod 755 /usr/local/bin/docker_proxy.sh && \
-    printf '%s\n' \
-    '' \
-    '# WARNING: THIS .bashrc WILL GET CLOBBERED PERIODICALLY BY OKTETO.  DO NOT EDIT.' \
-    '# INSTEAD, EDIT ~/src/.bashrc.local .  SEE BELOW FOR HOW THAT IS USED.' \
-    '# IF YOU NEED TO UPDATE THIS FILE, FORK https://github.com/FoundationDB/fdb-build-support.' \
-    '' \
-    'function cmk_ci() {' \
-    '    source /opt/rh/gcc-toolset-13/enable' \
-    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D  BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
-    '    ninja -v -C ${HOME}/build_output -j 84 all packages strip_targets 2>&1 | tee ${HOME}/ninja.log' \
-    '}' \
-    'function cmk() {' \
-    '    source /opt/rh/gcc-toolset-13/enable' \
-    '    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D  BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
-    '    ninja -C ${HOME}/build_output -j 84 2>&1 | tee ${HOME}/ninja.log' \
-    '}' \
-    '' \
-    'function ccmk_ci() {' \
-    '    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D  BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
-    '    ninja -v -C ${HOME}/build_output -j 84 all packages strip_targets 2>&1 | tee ${HOME}/ninja.log' \
-    '}' \
-    'function ccmk() {' \
-    '    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D  BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
-    '    ninja -C ${HOME}/build_output -j 84 2>&1 | tee ${HOME}/ninja.log' \
-    '}' \
-    'function ccmk_dbg() {' \
-    '    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D  BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -D CMAKE_BUILD_TYPE=DEBUG -D FULL_DEBUG_SYMBOLS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \' \
-    '    ninja -v -C ${HOME}/build_output -j 84 2>&1 | tee ${HOME}/ninja.log' \
-    '}' \
-    'function ct() {' \
-    '    cd ${HOME}/build_output && ctest -j 32 --no-compress-output -T test --output-on-failure 2>&1 | tee ${HOME}/ctest.log' \
-    '}' \
-    'function j() {' \
-    '   FDB_NETWORK_OPTION_EXTERNAL_CLIENT_DIRECTORY=${FDB_EXTERNAL_CLIENT_DIR} python3 -m joshua.joshua "${@}"' \
-    '}' \
-    'function jsd() {' \
-    '   j start --tarball $(find ${HOME}/build_output/packages -name correctness\*.tar.gz) "${@}"' \
-    '}' \
-    '' \
-    'function fmt() {' \
-    '   find ${HOME}/src/foundationdb -type f \( -name \*.c -o -name \*.cpp -o -name \*.h -o -name \*.hpp \) -a \( ! -name sqlite3.amalgamation.c \) -a \( ! -path \*.git\* \) -exec clang-format -style=file -i "{}" \;' \
-    '}' \
-    '' \
-    'USER_BASHRC="$HOME/src/.bashrc.local"' \
-    'if test -f "$USER_BASHRC"; then' \
-    '   source $USER_BASHRC' \
-    'fi' \
-    '' \
-    'function addr2line() {' \
-    '    EXECUTABLE=""' \
-    '    while getopts ":e:" OPTION' \
-    '    do' \
-    '            case "$OPTION" in' \
-    '                    e)' \
-    '                            EXECUTABLE="$OPTARG"' \
-    '                            ;;' \
-    '                    ?)' \
-    '                            ;;' \
-    '            esac' \
-    '    done' \
-    '    if [ -z $EXECUTABLE ]' \
-    '    then' \
-    '            echo "Missing executable"' \
-    '            return' \
-    '    fi' \
-    '    readelf -p .comment $EXECUTABLE | grep -q "clang"' \
-    '    if [ $? -eq 0 ]' \
-    '    then' \
-    '            # This is a clang generated ELF' \
-    '            llvm-addr2line "$@"' \
-    '    else' \
-    '            # This is gcc/other compiler generated ELF' \
-    '            command addr2line "$@"' \
-    '    fi' \
-    '}' \
-    '' \
-    >> .bashrc
+RUN rm -f /root/anaconda-ks.cfg
+COPY docker_proxy.sh /usr/local/bin/
+
+COPY bashrc /tmp/add_bashrc
+RUN  cat    /tmp/add_bashrc >> .bashrc \
+ &&  rm     /tmp/add_bashrc
 
 # =========================== END OF LAYER: devel ==============================
 FROM build AS distcc
