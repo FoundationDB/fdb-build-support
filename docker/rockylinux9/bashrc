@@ -1,0 +1,109 @@
+
+# WARNING: THIS .bashrc WILL GET CLOBBERED PERIODICALLY BY OKTETO.  DO NOT EDIT.
+# INSTEAD, EDIT ~/src/.bashrc.local .  SEE BELOW FOR HOW THAT IS USED.
+# IF YOU NEED TO UPDATE THIS FILE, FORK https://github.com/FoundationDB/fdb-build-support.
+
+function cmk_ci() {
+    source /opt/rh/gcc-toolset-13/enable
+    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D  BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \
+    ninja -v -C ${HOME}/build_output -j 84 all packages strip_targets 2>&1 | tee ${HOME}/ninja.log
+}
+function cmk() {
+    source /opt/rh/gcc-toolset-13/enable
+    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D  BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \
+    ninja -C ${HOME}/build_output -j 84 2>&1 | tee ${HOME}/ninja.log
+}
+function ccmk_ci() {
+    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D  BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \
+    ninja -v -C ${HOME}/build_output -j 84 all packages strip_targets 2>&1 | tee ${HOME}/ninja.log
+}
+function ccmk() {
+    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D  BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \
+    ninja -C ${HOME}/build_output -j 84 2>&1 | tee ${HOME}/ninja.log
+}
+function ccmk_dbg() {
+    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output -D USE_CCACHE=ON -D USE_WERROR=ON -D  BUILD_AWS_BACKUP=ON -D RUN_JUNIT_TESTS=ON -D RUN_JAVA_INTEGRATION_TESTS=ON -D CMAKE_BUILD_TYPE=DEBUG -D FULL_DEBUG_SYMBOLS=ON -G Ninja 2>&1 | tee ${HOME}/cmake.log && \
+    ninja -v -C ${HOME}/build_output -j 84 2>&1 | tee ${HOME}/ninja.log
+}
+
+function ct() {
+    cd ${HOME}/build_output && ctest -j 32 --no-compress-output -T test --output-on-failure 2>&1 | tee ${HOME}/ctest.log
+}
+function j() {
+   FDB_NETWORK_OPTION_EXTERNAL_CLIENT_DIRECTORY=${FDB_EXTERNAL_CLIENT_DIR} python3 -m joshua.joshua "${@}"
+}
+function jsd() {
+   j start --tarball $(find ${HOME}/build_output/packages -name correctness\*.tar.gz) "${@}"
+}
+
+function fmt() {
+   find ${HOME}/src/foundationdb -type f \( -name \*.c -o -name \*.cpp -o -name \*.h -o -name \*.hpp \) -a \( ! -name sqlite3.amalgamation.c \) -a \( ! -path \*.git\* \) -exec clang-format -style=file -i "{}" \;
+}
+
+function ccmk_hotfix() {
+  (
+    set -e -u -o pipefail
+    VERSION=$(awk '/ VERSION / {print $2; exit}' ${HOME}/src/foundationdb/CMakeLists.txt)
+    GITSHA=$(git -C ${HOME}/src/foundationdb log -n1 --pretty=oneline --abbrev-commit | awk '{print $1}')
+    BUILDNAME="${VERSION}-hotfix-${GITSHA}"
+    # ccache needed to use distcc to avoid OOM, but use empty local cache
+    export CCACHE_DIR=/var/cache/localcc
+    ccache --clear
+    rm -rf "${HOME}/build_output"
+    CC=clang CXX=clang++ USE_LD=LLD USE_LIBCXX=1 \
+    cmake -S ${HOME}/src/foundationdb -B ${HOME}/build_output \
+          -D USE_CCACHE=ON \
+          -D USE_WERROR=ON \
+          -D CMAKE_BUILD_TYPE=Release \
+          -D FDB_RELEASE=ON \
+          -D FDB_RELEASE_CANDIDATE=OFF \
+          -D WITH_LIBURING=OFF \
+          -D PORTABLE_ROCKSDB=1 \
+          -D ROCKSDB_TOOLS=ON \
+          -D RUN_JUNIT_TESTS=ON \
+          -D BUILD_AWS_BACKUP=ON \
+          -G Ninja 2>&1 | tee ${HOME}/cmake.log
+    ninja -C ${HOME}/build_output -j 72 all strip_targets 2>&1 | tee ${HOME}/ninja.log
+    cd ${HOME}/build_output/packages/bin
+    # separate tarballs just because small files transfer faster in urgent situation
+    tar -czvf ${HOME}/fdbserver-${BUILDNAME}.tar.gz       fdbserver
+    tar -czvf ${HOME}/fdbserver-${BUILDNAME}-debug.tar.gz fdbserver.debug
+    tar -czvf ${HOME}/fdbbackup-${BUILDNAME}.tar.gz       fdbbackup
+    tar -czvf ${HOME}/fdbbackup-${BUILDNAME}-debug.tar.gz fdbbackup.debug
+    tar -czvf ${HOME}/fdbcli-${BUILDNAME}.tar.gz          fdbcli
+    tar -czvf ${HOME}/fdbcli-${BUILDNAME}-debug.tar.gz    fdbcli.debug
+    ls -lh ${HOME}/fdb*.tar.gz
+    echo "Copy the needed tarballs to src/ to make available for sharing"
+  )
+}
+
+function addr2line() {
+    local EXECUTABLE=""
+    local OPTIND OPTARG OPTION
+    while getopts ":e:" OPTION
+    do
+            case "$OPTION" in
+                    e)
+                            EXECUTABLE="$OPTARG"
+                            ;;
+                    ?)
+                            ;;
+            esac
+    done
+    if [ -z "$EXECUTABLE" ]; then
+            echo "Missing executable"
+            return
+    fi
+    if readelf -p .comment "$EXECUTABLE" | grep -q "clang"; then
+            # This is a clang generated ELF
+            llvm-addr2line "$@"
+    else
+            # This is gcc/other compiler generated ELF
+            command addr2line "$@"
+    fi
+}
+
+USER_BASHRC="$HOME/src/.bashrc.local"
+if test -f "$USER_BASHRC"; then
+   source "$USER_BASHRC"
+fi
