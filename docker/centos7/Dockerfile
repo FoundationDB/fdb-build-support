@@ -270,13 +270,16 @@ RUN source /opt/rh/devtoolset-${DEVTOOLSET_VERSION}/enable && \
     cd .. && \
     rm -rf /tmp/*
 
-# install golang 1.22
-ENV GO_VERSION="1.22.12"
+# install golang
+ENV GO_VERSION="1.24.13"
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
-        curl -sfSL https://golang.org/dl/go${GO_VERSION}.linux-arm64.tar.gz -o golang.tar.gz; \
+        GO_ARCH="arm64"; GO_SHA256="74d97be1cc3a474129590c67ebf748a96e72d9f3a2b6fef3ed3275de591d49b3"; \
     else \
-        curl -sfSL https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz -o golang.tar.gz; \
+        GO_ARCH="amd64"; GO_SHA256="1fc94b57134d51669c72173ad5d49fd62afb0f1db9bf3f798fd98ee423f8d730"; \
     fi && \
+    curl -sfSL https://golang.org/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz -o golang.tar.gz && \
+    echo "$GO_SHA256  golang.tar.gz" > golang-sha.txt && \
+    sha256sum -c golang-sha.txt && \
     tar --directory /usr/local -xf golang.tar.gz && \
     echo '[ -x /usr/local/go/bin/go ] && export GOROOT=/usr/local/go && export GOPATH=$HOME/go && export PATH=$GOPATH/bin:$GOROOT/bin:$PATH' > /etc/profile.d/golang.sh && \
     source /etc/profile.d/golang.sh && \
