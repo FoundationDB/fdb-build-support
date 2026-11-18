@@ -190,9 +190,9 @@ RUN curl -Ls https://www.openssl.org/source/openssl-1.1.1m.tar.gz -o openssl.tar
 # Install golang
 ENV GO_VERSION="1.26.11"
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
-        GO_ARCH="arm64"; GO_SHA256="173da09eec491bcbb6cb74b40b93964172b79ecb908cd6a77506efbad94813a1"; \
+        GO_ARCH="arm64"; GO_SHA256="6c2f29b458b5add0835f18b776f69c8881a6d88428f1484a6da55755e620757e"; \
     else \
-        GO_ARCH="amd64"; GO_SHA256="d46dad33da4fc6f62465e677bfb39b10a11f014ac66f17e1dc4c0e5c1d1b5d61"; \
+        GO_ARCH="amd64"; GO_SHA256="9849f4e04ee35303714e34fbc3ac8ab44ea3e448a95aa182f91e3b9b79c710ec"; \
     fi && \
     curl -sfSL https://golang.org/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz -o golang.tar.gz && \
     echo "$GO_SHA256  golang.tar.gz" > golang-sha.txt && \
