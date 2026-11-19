@@ -188,13 +188,16 @@ RUN curl -Ls https://www.openssl.org/source/openssl-1.1.1m.tar.gz -o openssl.tar
     rm -rf /tmp/*
 
 # Install golang
-ENV GO_VERSION="1.25.14"
+ENV GO_VERSION="1.26.11"
 RUN if [ "$(uname -m)" == "aarch64" ]; then \
-        curl -sfSL "https://go.dev/dl/go${GO_VERSION}.linux-arm64.tar.gz" -o golang.tar.gz; \
+        GO_ARCH="arm64"; GO_SHA256="6c2f29b458b5add0835f18b776f69c8881a6d88428f1484a6da55755e620757e"; \
     else \
-        curl -sfSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o golang.tar.gz; \
-    fi \
-    && tar -C /usr/local -xzf golang.tar.gz && \
+        GO_ARCH="amd64"; GO_SHA256="9849f4e04ee35303714e34fbc3ac8ab44ea3e448a95aa182f91e3b9b79c710ec"; \
+    fi && \
+    curl -sfSL https://golang.org/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz -o golang.tar.gz && \
+    echo "$GO_SHA256  golang.tar.gz" > golang-sha.txt && \
+    sha256sum -c golang-sha.txt && \
+    tar -C /usr/local -xzf golang.tar.gz && \
     echo '[ -x /usr/local/go/bin/go ] && export PATH=/usr/local/go/bin:$PATH' > /etc/profile.d/golang.sh && \
     source /etc/profile.d/golang.sh && \
     go env -w GOPROXY=https://proxy.golang.org,direct && \
