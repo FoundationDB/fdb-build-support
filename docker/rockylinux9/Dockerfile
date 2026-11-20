@@ -1,4 +1,4 @@
-FROM rockylinux/rockylinux:9.8 AS build
+FROM rockylinux/rockylinux:9.9 AS build
 
 WORKDIR /tmp
 # Disable the faulty mirror list for RockyLinux for now. Since all the other images use the base image
